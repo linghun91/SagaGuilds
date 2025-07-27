@@ -12,15 +12,18 @@ import org.bukkit.inventory.InventoryHolder;
 public class GuildMemberActionHolder implements InventoryHolder {
     private final Guild guild;
     private final GuildMember member;
+    private final int page;
     
     /**
      * 构造函数
      * @param guild 公会对象
      * @param member 成员对象
+     * @param page 当前页码
      */
-    public GuildMemberActionHolder(Guild guild, GuildMember member) {
+    public GuildMemberActionHolder(Guild guild, GuildMember member, int page) {
         this.guild = guild;
         this.member = member;
+        this.page = page;
     }
     
     /**
@@ -37,6 +40,14 @@ public class GuildMemberActionHolder implements InventoryHolder {
      */
     public GuildMember getMember() {
         return member;
+    }
+    
+    /**
+     * 获取页码
+     * @return 当前页码
+     */
+    public int getPage() {
+        return page;
     }
     
     @Override

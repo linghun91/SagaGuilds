@@ -4,6 +4,8 @@ import cn.i7mc.sagaguild.SagaGuild;
 import cn.i7mc.sagaguild.data.models.Guild;
 import cn.i7mc.sagaguild.data.models.GuildMember;
 import cn.i7mc.sagaguild.gui.holders.GuildManageHolder;
+import cn.i7mc.sagaguild.utils.GUIUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -49,7 +51,7 @@ public class GuildManageListener implements Listener {
         GuildMember member = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
         if (member == null || !member.isElder()) {
             player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -62,55 +64,51 @@ public class GuildManageListener implements Listener {
         // 处理点击事件
         switch (event.getSlot()) {
             case 10: // 基本信息管理
-                player.closeInventory();
                 plugin.getGuiManager().openGuildSettingsGUI(player, guild);
                 break;
             case 12: // 成员管理
-                player.closeInventory();
                 plugin.getGuiManager().openGuildMemberGUI(player, guild, 1);
                 break;
             case 14: // 银行管理
-                player.closeInventory();
+                GUIUtils.closeGUI(player);
                 player.performCommand("guild bank");
                 break;
             case 16: // 领地管理
-                player.closeInventory();
+                GUIUtils.closeGUI(player);
                 player.performCommand("guild claim");
                 break;
             case 28: // 活动管理
-                player.closeInventory();
+                GUIUtils.closeGUI(player);
                 player.performCommand("guild activity");
                 break;
             case 30: // 任务管理
-                player.closeInventory();
+                GUIUtils.closeGUI(player);
                 player.performCommand("guild task");
                 break;
             case 32: // 公会关系管理
-                player.closeInventory();
-                // 打开公会关系管理GUI
                 Guild playerGuild = plugin.getGuildManager().getPlayerGuild(player.getUniqueId());
                 if (playerGuild != null) {
                     plugin.getGuiManager().openGuildRelationManageGUI(player, playerGuild, 1);
                 } else {
                     player.sendMessage(plugin.getConfigManager().getMessage("guild.not-in-guild"));
+                    GUIUtils.closeGUI(player);
                 }
                 break;
             case 33: // 加入申请管理
-                player.closeInventory();
-                // 打开加入申请管理GUI
                 Guild playerGuild2 = plugin.getGuildManager().getPlayerGuild(player.getUniqueId());
                 if (playerGuild2 != null) {
                     plugin.getGuiManager().openJoinRequestGUI(player, playerGuild2, 1);
                 } else {
                     player.sendMessage(plugin.getConfigManager().getMessage("guild.not-in-guild"));
+                    GUIUtils.closeGUI(player);
                 }
                 break;
             case 34: // 公会战管理
-                player.closeInventory();
+                GUIUtils.closeGUI(player);
                 player.performCommand("guild war");
                 break;
             case 49: // 返回
-                player.closeInventory();
+                GUIUtils.closeGUI(player);
                 break;
         }
     }

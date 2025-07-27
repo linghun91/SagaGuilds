@@ -6,6 +6,7 @@ import cn.i7mc.sagaguild.data.models.GuildMember;
 import cn.i7mc.sagaguild.data.models.GuildWar;
 import cn.i7mc.sagaguild.gui.holders.GuildListHolder;
 import cn.i7mc.sagaguild.utils.ItemUtil;
+import cn.i7mc.sagaguild.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -80,7 +81,7 @@ public class GuildListListener implements Listener {
             plugin.getGuiManager().openGuildListGUI(player, page + 1);
         } else if (event.getSlot() == 49 && clickedItem.getType() == Material.BARRIER) {
             // 点击返回按钮
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
         }
     }
 
@@ -117,7 +118,7 @@ public class GuildListListener implements Listener {
         }
 
         // 显示公会信息并提供选项
-        player.closeInventory();
+        GUIUtils.closeGUI(player);
 
         // 检查玩家是否已经在公会中
         Guild playerGuild = plugin.getGuildManager().getPlayerGuild(player.getUniqueId());
@@ -224,7 +225,7 @@ public class GuildListListener implements Listener {
         }
 
         // 关闭物品栏
-        player.closeInventory();
+        GUIUtils.closeGUI(player);
 
         // 检查玩家是否已经在公会中
         if (plugin.getGuildManager().getPlayerGuild(player.getUniqueId()) != null) {
@@ -281,14 +282,14 @@ public class GuildListListener implements Listener {
         // 获取玩家所在公会
         Guild playerGuild = plugin.getGuildManager().getPlayerGuild(player.getUniqueId());
         if (playerGuild == null) {
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             player.sendMessage(plugin.getConfigManager().getMessage("guild.not-in-guild"));
             return;
         }
 
         // 检查是否是自己的公会
         if (playerGuild.getId() == guild.getId()) {
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             player.sendMessage(plugin.getConfigManager().getMessage("guild.cannot-set-relation-self"));
             return;
         }
@@ -296,13 +297,13 @@ public class GuildListListener implements Listener {
         // 检查玩家是否有权限管理公会关系
         GuildMember member = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
         if (member == null || (!member.isOwner() && !member.isAdmin())) {
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission"));
             return;
         }
 
         // 打开公会关系设置GUI
-        player.closeInventory();
+        GUIUtils.closeGUI(player);
         plugin.getGuiManager().openGuildRelationGUI(player, guild);
     }
 }

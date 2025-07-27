@@ -8,10 +8,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 公会活动主命令
@@ -76,8 +73,12 @@ public class ActivityCommand implements SubCommand {
             return false;
         }
 
+        // 创建新的参数数组，去掉第一个参数（子命令名）
+        String[] subArgs = new String[args.length - 1];
+        System.arraycopy(args, 1, subArgs, 0, args.length - 1);
+        
         // 执行子命令
-        return subCommand.execute(player, args);
+        return subCommand.execute(player, subArgs);
     }
 
     @Override
@@ -118,15 +119,14 @@ public class ActivityCommand implements SubCommand {
     private void showHelp(Player player) {
         PlayerUtil.sendMessage(player, Component.text("=== 公会活动命令 ===", NamedTextColor.GOLD));
 
-        for (SubCommand subCommand : new ArrayList<>(subCommands.values())) {
-            // 避免重复显示
-            if (subCommand.getName().equals(subCommands.get(subCommand.getName().toLowerCase()).getName())) {
-                PlayerUtil.sendMessage(player,
-                    Component.text("/guild activity " + subCommand.getName(), NamedTextColor.YELLOW)
-                        .append(Component.text(" - ", NamedTextColor.GRAY))
-                        .append(Component.text(subCommand.getDescription(), NamedTextColor.WHITE))
-                );
-            }
+        // 使用HashSet避免重复显示相同的命令对象
+        Set<SubCommand> uniqueCommands = new HashSet<>(subCommands.values());
+        for (SubCommand subCommand : uniqueCommands) {
+            PlayerUtil.sendMessage(player,
+                Component.text("/guild activity " + subCommand.getName(), NamedTextColor.YELLOW)
+                    .append(Component.text(" - ", NamedTextColor.GRAY))
+                    .append(Component.text(subCommand.getDescription(), NamedTextColor.WHITE))
+            );
         }
     }
 }

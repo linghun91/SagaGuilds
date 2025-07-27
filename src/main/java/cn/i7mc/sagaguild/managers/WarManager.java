@@ -304,6 +304,9 @@ public class WarManager {
             task.cancel();
         }
 
+        // 清除战争排行榜缓存，确保占位符能够获取最新数据
+        plugin.getRankingManager().clearCache("war");
+
         // 通知参与者
         if (winnerId != null) {
             Guild winner = plugin.getGuildManager().getGuildById(winnerId);
@@ -327,8 +330,27 @@ public class WarManager {
      * @return 胜利者公会ID，平局返回null
      */
     private Integer determineWinner(GuildWar war) {
-        // TODO: 实现胜利条件判断
-        return null;
+        try {
+            // 获取攻击方击杀数
+            int attackerKills = warDAO.getWarKillsByGuild(war.getId(), war.getAttackerId());
+            
+            // 获取防守方击杀数
+            int defenderKills = warDAO.getWarKillsByGuild(war.getId(), war.getDefenderId());
+            
+            plugin.getLogger().info("公会战 " + war.getId() + " 结算: 攻击方击杀=" + attackerKills + ", 防守方击杀=" + defenderKills);
+            
+            // 比较击杀数确定胜利者
+            if (attackerKills > defenderKills) {
+                return war.getAttackerId(); // 攻击方获胜
+            } else if (defenderKills > attackerKills) {
+                return war.getDefenderId(); // 防守方获胜
+            } else {
+                return null; // 平局
+            }
+        } catch (Exception e) {
+            plugin.getLogger().severe("确定战争胜利者时发生错误: " + e.getMessage());
+            return null; // 发生异常时视为平局
+        }
     }
 
     /**
@@ -655,6 +677,21 @@ public class WarManager {
     }
 
     /**
+     * 检查公会是否在战争中
+     * @param guildId 公会ID
+     * @return 是否在战争中
+     */
+    public boolean isGuildInWar(int guildId) {
+        for (GuildWar war : activeWars.values()) {
+            if (war.getStatus() == GuildWar.Status.ONGOING &&
+                (war.getAttackerId() == guildId || war.getDefenderId() == guildId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 通知战争参与者
      * @param war 公会战对象
      * @param message 消息
@@ -675,5 +712,131 @@ public class WarManager {
                 player.sendMessage(message);
             }
         }
+    }
+
+    /**
+     * 拒绝公会战邀请
+     * @param player 拒绝者
+     * @param targetGuildName 发起公会名称
+     * @return 是否成功
+     */
+    public boolean rejectWarInvitation(Player player, String targetGuildName) {
+        // 检查玩家是否在公会中
+        Guild guild = plugin.getGuildManager().getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.not-in-guild"));
+            return false;
+        }
+
+        // 检查玩家是否有权限拒绝公会战
+        GuildMember member = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
+        if (member == null || !member.isAdmin()) {
+            player.sendMessage(plugin.getConfigManager().getMessage("members.not-admin"));
+            return false;
+        }
+
+        // 检查发起公会是否存在
+        Guild targetGuild = plugin.getGuildManager().getGuildByName(targetGuildName);
+        if (targetGuild == null) {
+            player.sendMessage("§c找不到名为 §7" + targetGuildName + " §c的公会！");
+            return false;
+        }
+
+        // 检查是否有邀请
+        Map<Integer, Long> invites = warInvitations.get(guild.getId());
+        if (invites == null || !invites.containsKey(targetGuild.getId())) {
+            player.sendMessage("§c没有来自该公会的战争邀请！");
+            return false;
+        }
+
+        // 移除邀请
+        invites.remove(targetGuild.getId());
+
+        // 通知双方公会
+        player.sendMessage("§a你已拒绝来自 §e" + targetGuild.getName() + " §a的战争邀请！");
+        
+        // 通知发起方公会
+        String rejectMessage = "§c" + guild.getName() + " §e拒绝了你们的战争邀请！";
+        for (GuildMember targetMember : plugin.getGuildManager().getGuildMembers(targetGuild.getId())) {
+            Player targetPlayer = Bukkit.getPlayer(targetMember.getPlayerUuid());
+            if (targetPlayer != null && targetPlayer.isOnline()) {
+                targetPlayer.sendMessage(rejectMessage);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 投降
+     * @param player 投降的玩家
+     * @return 是否成功
+     */
+    public boolean surrender(Player player) {
+        // 检查玩家是否在公会中
+        Guild guild = plugin.getGuildManager().getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.not-in-guild"));
+            return false;
+        }
+
+        // 检查玩家是否有权限投降
+        GuildMember member = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
+        if (member == null || !member.isAdmin()) {
+            player.sendMessage(plugin.getConfigManager().getMessage("members.not-admin"));
+            return false;
+        }
+
+        // 获取当前战争
+        GuildWar war = getActiveWar(guild.getId());
+        if (war == null) {
+            player.sendMessage("§c你的公会当前没有进行中的战争！");
+            return false;
+        }
+
+        // 只能在进行中的战争中投降
+        if (war.getStatus() != GuildWar.Status.ONGOING) {
+            player.sendMessage("§c只能在进行中的战争中投降！");
+            return false;
+        }
+
+        // 获取对方公会
+        int opponentId = war.getOpponentId(guild.getId());
+        Guild opponent = plugin.getGuildManager().getGuildById(opponentId);
+        if (opponent == null) {
+            player.sendMessage("§c无法获取对方公会信息！");
+            return false;
+        }
+
+        // 结束战争，对方获胜
+        boolean success = warDAO.endWar(war.getId(), opponentId);
+        if (!success) {
+            player.sendMessage("§c投降失败！");
+            return false;
+        }
+
+        // 更新缓存
+        war.setStatus(GuildWar.Status.FINISHED);
+        war.setWinnerId(opponentId);
+        war.setEndTime(new Date());
+
+        // 移除活跃战争
+        activeWars.remove(war.getId());
+
+        // 取消战争任务
+        BukkitTask task = warTasks.get(war.getId());
+        if (task != null) {
+            task.cancel();
+            warTasks.remove(war.getId());
+        }
+
+        // 通知双方公会
+        String surrenderMessage = "§c" + guild.getName() + " §e选择投降！ §a" + opponent.getName() + " §e获得胜利！";
+        notifyWarParticipants(war, surrenderMessage);
+
+        // 给获胜方奖励（可选，这里仅作示例）
+        plugin.getLogger().info("公会 " + guild.getName() + " 向 " + opponent.getName() + " 投降");
+
+        return true;
     }
 }

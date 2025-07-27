@@ -130,12 +130,10 @@ public class WarListener implements Listener {
             return;
         }
 
-        // 检查是否在公会战中
-        GuildWar war = plugin.getWarManager().getActiveWar(attackerGuild.getId());
-        if (war == null || !war.isParticipant(victimGuild.getId()) || war.getStatus() != GuildWar.Status.ONGOING) {
-            // 不在公会战中的公会成员不能互相伤害
-            event.setCancelled(true);
-        }
+        // 其他情况允许PVP：
+        // 1. 无任何关系的不同公会成员可以正常PVP
+        // 2. 战争状态的公会成员可以PVP（击杀统计在onPlayerDeath中处理）
+        // 不需要额外限制，让PVP正常进行
     }
 
     /**

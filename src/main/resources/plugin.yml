@@ -4,6 +4,7 @@ main: cn.i7mc.sagaguild.SagaGuild
 api-version: '1.20'
 authors: [Saga]
 description: 一个全功能的Minecraft公会插件
+softdepend: [PlaceholderAPI, Vault]
 commands:
   guild:
     description: 公会主命令
@@ -12,6 +13,9 @@ commands:
 permissions:
   guild.create:
     description: 创建公会权限
+    default: true
+  guild.disband:
+    description: 解散公会权限
     default: true
   guild.admin:
     description: 管理员权限
@@ -22,3 +26,9 @@ permissions:
   guild.war:
     description: 发起公会战权限
     default: true
+  guild.transfer:
+    description: 转让会长权限
+    default: true
+  guild.admin.exp:
+    description: 管理员经验管理权限
+    default: op

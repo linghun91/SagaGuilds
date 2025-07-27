@@ -49,8 +49,8 @@ public class ActivityCreateCommand implements SubCommand {
 
     @Override
     public boolean execute(Player player, String[] args) {
-        // 检查参数数量
-        if (args.length < 7) {
+        // 检查参数数量（名称、类型、开始日期、开始时间、结束日期、结束时间、地点、最大人数）
+        if (args.length < 8) {
             PlayerUtil.sendMessage(player, Component.text("用法: " + getSyntax(), NamedTextColor.RED));
             PlayerUtil.sendMessage(player, Component.text("活动类型: MEETING(会议), DUNGEON(副本), PVP(PVP), RESOURCE_GATHERING(资源收集), BUILDING(建筑), CUSTOM(自定义)", NamedTextColor.GRAY));
             PlayerUtil.sendMessage(player, Component.text("时间格式: yyyy-MM-dd HH:mm，例如: 2023-05-20 18:30", NamedTextColor.GRAY));
@@ -66,18 +66,18 @@ public class ActivityCreateCommand implements SubCommand {
 
         // 检查权限
         GuildMember member = plugin.getGuildManager().getGuildMember(guild.getId(), player.getUniqueId());
-        if (member == null || (member.getRole() != GuildMember.Role.OWNER && member.getRole() != GuildMember.Role.ADMIN && !player.hasPermission("guild.admin"))) {
+        if (member == null || (!member.isAdmin() && !player.hasPermission("guild.admin"))) {
             PlayerUtil.sendMessage(player, Component.text("你没有权限创建公会活动！", NamedTextColor.RED));
             return false;
         }
 
         // 解析参数
-        String name = args[1];
+        String name = args[0];
 
         // 解析活动类型
         GuildActivity.Type type;
         try {
-            type = GuildActivity.Type.valueOf(args[2].toUpperCase());
+            type = GuildActivity.Type.valueOf(args[1].toUpperCase());
         } catch (IllegalArgumentException e) {
             PlayerUtil.sendMessage(player, Component.text("无效的活动类型！可用类型: MEETING(会议), DUNGEON(副本), PVP(PVP), RESOURCE_GATHERING(资源收集), BUILDING(建筑), CUSTOM(自定义)", NamedTextColor.RED));
             return false;
@@ -86,7 +86,7 @@ public class ActivityCreateCommand implements SubCommand {
         // 解析开始时间
         Date startTime;
         try {
-            startTime = dateFormat.parse(args[3] + " " + args[4]);
+            startTime = dateFormat.parse(args[2] + " " + args[3]);
         } catch (ParseException e) {
             PlayerUtil.sendMessage(player, Component.text("无效的开始时间格式！正确格式: yyyy-MM-dd HH:mm，例如: 2023-05-20 18:30", NamedTextColor.RED));
             return false;
@@ -101,7 +101,7 @@ public class ActivityCreateCommand implements SubCommand {
         // 解析结束时间
         Date endTime;
         try {
-            endTime = dateFormat.parse(args[5] + " " + args[6]);
+            endTime = dateFormat.parse(args[4] + " " + args[5]);
         } catch (ParseException e) {
             PlayerUtil.sendMessage(player, Component.text("无效的结束时间格式！正确格式: yyyy-MM-dd HH:mm，例如: 2023-05-20 20:30", NamedTextColor.RED));
             return false;
@@ -114,12 +114,12 @@ public class ActivityCreateCommand implements SubCommand {
         }
 
         // 解析地点
-        String location = args[7];
+        String location = args[6];
 
         // 解析最大参与人数
         int maxParticipants;
         try {
-            maxParticipants = Integer.parseInt(args[8]);
+            maxParticipants = Integer.parseInt(args[7]);
             if (maxParticipants < 0) {
                 PlayerUtil.sendMessage(player, Component.text("最大参与人数必须大于等于0！0表示不限制人数", NamedTextColor.RED));
                 return false;
@@ -131,8 +131,8 @@ public class ActivityCreateCommand implements SubCommand {
 
         // 解析描述
         StringBuilder descriptionBuilder = new StringBuilder();
-        if (args.length > 9) {
-            for (int i = 9; i < args.length; i++) {
+        if (args.length > 8) {
+            for (int i = 8; i < args.length; i++) {
                 descriptionBuilder.append(args[i]).append(" ");
             }
         }
@@ -161,41 +161,41 @@ public class ActivityCreateCommand implements SubCommand {
     public List<String> tabComplete(Player player, String[] args) {
         List<String> completions = new ArrayList<>();
 
-        if (args.length == 2) {
+        if (args.length == 1) {
             // 活动名称，不提供补全
             return completions;
-        } else if (args.length == 3) {
+        } else if (args.length == 2) {
             // 活动类型
             for (GuildActivity.Type type : GuildActivity.Type.values()) {
                 completions.add(type.name());
             }
-        } else if (args.length == 4) {
+        } else if (args.length == 3) {
             // 开始日期，提供当前日期
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             completions.add(dateFormat.format(new Date()));
-        } else if (args.length == 5) {
+        } else if (args.length == 4) {
             // 开始时间，提供几个常用时间
             completions.add("08:00");
             completions.add("12:00");
             completions.add("18:00");
             completions.add("20:00");
-        } else if (args.length == 6) {
+        } else if (args.length == 5) {
             // 结束日期，提供当前日期
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             completions.add(dateFormat.format(new Date()));
-        } else if (args.length == 7) {
+        } else if (args.length == 6) {
             // 结束时间，提供几个常用时间
             completions.add("10:00");
             completions.add("14:00");
             completions.add("20:00");
             completions.add("22:00");
-        } else if (args.length == 8) {
+        } else if (args.length == 7) {
             // 地点，提供几个常用地点
             completions.add("主城");
             completions.add("公会基地");
             completions.add("副本入口");
             completions.add("竞技场");
-        } else if (args.length == 9) {
+        } else if (args.length == 8) {
             // 最大参与人数，提供几个常用数量
             completions.add("0");
             completions.add("5");

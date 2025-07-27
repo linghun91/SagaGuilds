@@ -437,7 +437,7 @@ public class AllianceManager {
         Guild targetGuild = plugin.getGuildManager().getGuildById(targetId);
 
         if (requesterGuild != null && targetGuild != null) {
-            String message = plugin.getConfigManager().getMessage("alliance.request-rejected",
+            String message = plugin.getConfigManager().getMessage("alliance.alliance-rejected",
                     "guild", targetGuild.getName());
 
             for (GuildMember member : plugin.getGuildManager().getGuildMembers(requesterId)) {
@@ -449,5 +449,52 @@ public class AllianceManager {
         }
 
         return true;
+    }
+
+    /**
+     * 获取公会的所有联盟公会
+     * @param guildId 公会ID
+     * @return 联盟公会列表
+     */
+    public List<Guild> getAlliedGuilds(int guildId) {
+        List<Guild> allies = new ArrayList<>();
+        List<Integer> allyIds = guildAlliances.get(guildId);
+        
+        if (allyIds != null) {
+            for (Integer allyId : allyIds) {
+                Guild guild = plugin.getGuildManager().getGuildById(allyId);
+                if (guild != null) {
+                    allies.add(guild);
+                }
+            }
+        }
+        
+        return allies;
+    }
+
+    /**
+     * 清理公会的所有联盟关系
+     * @param guildId 公会ID
+     */
+    public void cleanupGuildAlliances(int guildId) {
+        try {
+            // 删除数据库中的所有联盟关系
+            allianceDAO.deleteAllGuildAlliances(guildId);
+
+            // 更新缓存
+            guildAlliances.remove(guildId);
+
+            // 从其他公会的联盟列表中移除该公会
+            for (Map.Entry<Integer, List<Integer>> entry : guildAlliances.entrySet()) {
+                List<Integer> allies = entry.getValue();
+                allies.remove(Integer.valueOf(guildId));
+            }
+
+            // 清理所有相关的联盟请求
+            allianceDAO.cleanupAllRelatedRequests(guildId);
+
+        } catch (Exception e) {
+            plugin.getLogger().warning("清理公会联盟关系时发生错误: " + e.getMessage());
+        }
     }
 }

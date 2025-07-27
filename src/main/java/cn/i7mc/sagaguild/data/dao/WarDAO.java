@@ -217,6 +217,60 @@ public class WarDAO {
     }
 
     /**
+     * 获取指定公会在指定战争中的击杀数
+     * @param warId 战争ID
+     * @param guildId 公会ID
+     * @return 击杀数
+     */
+    public int getWarKillsByGuild(int warId, int guildId) {
+        String sql = "SELECT COUNT(*) FROM war_kills wk " +
+                    "JOIN members m ON wk.killer_uuid = m.player_uuid " +
+                    "WHERE wk.war_id = ? AND m.guild_id = ?";
+
+        try (Connection conn = databaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, warId);
+            stmt.setInt(2, guildId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("获取公会战击杀统计失败: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    /**
+     * 获取公会的战争胜利次数
+     * @param guildId 公会ID
+     * @return 胜利次数
+     */
+    public int getGuildWarWins(int guildId) {
+        String sql = "SELECT COUNT(*) FROM wars WHERE winner_id = ? AND status = 'FINISHED'";
+
+        try (Connection conn = databaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, guildId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("获取公会战胜利次数失败: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    /**
      * 从结果集中提取公会战对象
      * @param rs 结果集
      * @return 公会战对象

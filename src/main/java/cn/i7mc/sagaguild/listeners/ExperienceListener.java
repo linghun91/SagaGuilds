@@ -39,6 +39,10 @@ public class ExperienceListener implements Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
+        // 暂时禁用自动经验获取 - 仅保留管理员命令添加经验
+        return;
+        
+        /*
         Player player = event.getPlayer();
         
         // 检查玩家是否在公会中
@@ -62,6 +66,7 @@ public class ExperienceListener implements Listener {
         if (levelUp) {
             notifyGuildLevelUp(guild);
         }
+        */
     }
     
     /**
@@ -70,6 +75,10 @@ public class ExperienceListener implements Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
+        // 暂时禁用自动经验获取 - 仅保留管理员命令添加经验
+        return;
+        
+        /*
         Player player = event.getPlayer();
         
         // 检查玩家是否在公会中
@@ -93,6 +102,7 @@ public class ExperienceListener implements Listener {
         if (levelUp) {
             notifyGuildLevelUp(guild);
         }
+        */
     }
     
     /**
@@ -101,6 +111,10 @@ public class ExperienceListener implements Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
+        // 暂时禁用自动经验获取 - 仅保留管理员命令添加经验
+        return;
+        
+        /*
         // 检查是否是玩家击杀
         if (event.getEntity().getKiller() == null) {
             return;
@@ -129,6 +143,7 @@ public class ExperienceListener implements Listener {
         if (levelUp) {
             notifyGuildLevelUp(guild);
         }
+        */
     }
     
     /**
@@ -137,6 +152,10 @@ public class ExperienceListener implements Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerFish(PlayerFishEvent event) {
+        // 暂时禁用自动经验获取 - 仅保留管理员命令添加经验
+        return;
+        
+        /*
         // 检查是否成功钓到鱼
         if (event.getState() != PlayerFishEvent.State.CAUGHT_FISH) {
             return;
@@ -165,6 +184,7 @@ public class ExperienceListener implements Listener {
         if (levelUp) {
             notifyGuildLevelUp(guild);
         }
+        */
     }
     
     /**

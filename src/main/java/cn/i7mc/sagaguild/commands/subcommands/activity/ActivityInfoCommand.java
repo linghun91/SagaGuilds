@@ -50,7 +50,7 @@ public class ActivityInfoCommand implements SubCommand {
     @Override
     public boolean execute(Player player, String[] args) {
         // 检查参数数量
-        if (args.length < 2) {
+        if (args.length < 1) {
             PlayerUtil.sendMessage(player, Component.text("用法: " + getSyntax(), NamedTextColor.RED));
             return false;
         }
@@ -65,7 +65,7 @@ public class ActivityInfoCommand implements SubCommand {
         // 解析活动ID
         int activityId;
         try {
-            activityId = Integer.parseInt(args[1]);
+            activityId = Integer.parseInt(args[0]);
         } catch (NumberFormatException e) {
             PlayerUtil.sendMessage(player, Component.text("无效的活动ID！", NamedTextColor.RED));
             return false;
@@ -238,7 +238,7 @@ public class ActivityInfoCommand implements SubCommand {
     public List<String> tabComplete(Player player, String[] args) {
         List<String> completions = new ArrayList<>();
 
-        if (args.length == 2) {
+        if (args.length == 1) {
             // 获取玩家所在公会
             Guild guild = plugin.getGuildManager().getPlayerGuild(player.getUniqueId());
             if (guild != null) {

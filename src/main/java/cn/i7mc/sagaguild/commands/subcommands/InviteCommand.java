@@ -283,8 +283,8 @@ public class InviteCommand implements SubCommand {
             return false;
         }
 
-        // 加入公会
-        boolean success = plugin.getGuildManager().joinGuild(player, guildId);
+        // 加入公会（通过邀请）
+        boolean success = plugin.getGuildManager().joinGuild(player, guildId, true);
         if (!success) {
             player.sendMessage(plugin.getConfigManager().getMessage("members.invite-accept-failed"));
             return false;

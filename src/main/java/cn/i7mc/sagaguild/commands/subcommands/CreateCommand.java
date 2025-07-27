@@ -116,12 +116,37 @@ public class CreateCommand implements SubCommand {
             return true;
         }
         
-        // TODO: 检查创建费用
+        // 检查创建费用
+        double creationCost = config.getDouble("guild.creation-cost", 1000);
+        if (creationCost > 0) {
+            // 检查经济系统是否启用
+            if (!plugin.getEconomyManager().isEnabled()) {
+                player.sendMessage(plugin.getConfigManager().getMessage("bank.economy-disabled"));
+                return true;
+            }
+            
+            // 检查玩家余额
+            if (!plugin.getEconomyManager().hasBalance(player, creationCost)) {
+                player.sendMessage(plugin.getConfigManager().getMessage("guild.not-enough-money",
+                    "amount", plugin.getEconomyManager().format(creationCost)));
+                return true;
+            }
+            
+            // 扣除费用
+            if (!plugin.getEconomyManager().withdrawPlayer(player, creationCost)) {
+                player.sendMessage("§c扣除费用失败，请稍后再试！");
+                return true;
+            }
+        }
         
         // 创建公会
         Guild guild = plugin.getGuildManager().createGuild(player, name, tag, description.toString().trim());
         
         if (guild == null) {
+            // 如果创建失败，退还费用
+            if (creationCost > 0 && plugin.getEconomyManager().isEnabled()) {
+                plugin.getEconomyManager().depositPlayer(player, creationCost);
+            }
             player.sendMessage("§c创建公会失败，请稍后再试！");
             return true;
         }

@@ -1,6 +1,7 @@
 package cn.i7mc.sagaguild.data;
 
 import cn.i7mc.sagaguild.SagaGuild;
+import cn.i7mc.sagaguild.data.dao.MemberDAO;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.File;
@@ -16,6 +17,7 @@ import java.sql.SQLException;
 public class DatabaseManager {
     private final SagaGuild plugin;
     private Connection connection;
+    private MemberDAO memberDAO;
 
     public DatabaseManager(SagaGuild plugin) {
         this.plugin = plugin;
@@ -52,6 +54,9 @@ public class DatabaseManager {
 
             // 设置连接属性
             connection.setAutoCommit(true);
+            
+            // 初始化 DAO
+            memberDAO = new MemberDAO(plugin);
 
             // 只在首次连接时输出成功信息
             plugin.getLogger().info("数据库连接成功！");
@@ -255,9 +260,53 @@ public class DatabaseManager {
                 // ", UNIQUE(player_uuid, guild_id)" +
                 ")"
             );
+            
+            // 创建公会传送点表
+            executeUpdate(
+                "CREATE TABLE IF NOT EXISTS guild_warps (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "guild_id INTEGER NOT NULL UNIQUE," +
+                "world TEXT NOT NULL," +
+                "x REAL NOT NULL," +
+                "y REAL NOT NULL," +
+                "z REAL NOT NULL," +
+                "yaw REAL NOT NULL," +
+                "pitch REAL NOT NULL," +
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                "creator_uuid TEXT NOT NULL," +
+                "FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE" +
+                ")"
+            );
+
+            // 数据库迁移：添加tag_color字段
+            migrateDatabase();
 
         } catch (SQLException e) {
             plugin.getLogger().severe("创建数据库表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 数据库迁移
+     */
+    private void migrateDatabase() {
+        try {
+            // 检查是否需要添加tag_color字段
+            boolean hasTagColor = false;
+            try (var rs = connection.getMetaData().getColumns(null, null, "guilds", "tag_color")) {
+                if (rs.next()) {
+                    hasTagColor = true;
+                }
+            }
+            
+            if (!hasTagColor) {
+                plugin.getLogger().info("添加tag_color字段到guilds表...");
+                executeUpdate("ALTER TABLE guilds ADD COLUMN tag_color TEXT DEFAULT '7'");
+                plugin.getLogger().info("tag_color字段添加成功！");
+            }
+            
+        } catch (SQLException e) {
+            plugin.getLogger().warning("数据库迁移失败: " + e.getMessage());
         }
     }
 
@@ -365,5 +414,13 @@ public class DatabaseManager {
                 plugin.getLogger().severe("关闭数据库连接失败: " + e.getMessage());
             }
         }
+    }
+    
+    /**
+     * 获取成员 DAO
+     * @return MemberDAO 实例
+     */
+    public MemberDAO getMemberDAO() {
+        return memberDAO;
     }
 }

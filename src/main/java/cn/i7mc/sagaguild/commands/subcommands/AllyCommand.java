@@ -69,12 +69,12 @@ public class AllyCommand implements SubCommand {
         }
 
         // 检查参数
-        if (args.length < 2) {
+        if (args.length < 1) {
             player.sendMessage(plugin.getConfigManager().getMessage("general.invalid-command"));
             return true;
         }
 
-        String subCommand = args[1].toLowerCase();
+        String subCommand = args[0].toLowerCase();
 
         switch (subCommand) {
             case "add":
@@ -97,16 +97,16 @@ public class AllyCommand implements SubCommand {
      * @return 是否成功
      */
     private boolean handleAddAlly(Player player, String[] args, int guildId) {
-        if (args.length < 3) {
+        if (args.length < 2) {
             player.sendMessage(plugin.getConfigManager().getMessage("general.invalid-command"));
             return true;
         }
 
-        String targetGuildName = args[2];
+        String targetGuildName = args[1];
         Guild targetGuild = plugin.getGuildManager().getGuildByName(targetGuildName);
 
         if (targetGuild == null) {
-            player.sendMessage(plugin.getConfigManager().getMessage("guild.not-found", "name", targetGuildName));
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.not-found", "guild", targetGuildName));
             return true;
         }
 
@@ -124,13 +124,13 @@ public class AllyCommand implements SubCommand {
             return true;
         }
 
-        // 创建联盟
-        boolean success = plugin.getAllianceManager().createAlliance(player, targetGuildId);
+        // 发送联盟申请
+        boolean success = plugin.getAllianceManager().sendAllianceRequest(guildId, targetGuildId);
 
         if (success) {
-            player.sendMessage(plugin.getConfigManager().getMessage("alliance.created", "guild", targetGuild.getName()));
+            player.sendMessage(plugin.getConfigManager().getMessage("alliance.request-sent", "guild", targetGuild.getName()));
         } else {
-            player.sendMessage(plugin.getConfigManager().getMessage("alliance.create-failed", "guild", targetGuild.getName()));
+            player.sendMessage(plugin.getConfigManager().getMessage("alliance.request-failed", "guild", targetGuild.getName()));
         }
 
         return true;
@@ -144,16 +144,16 @@ public class AllyCommand implements SubCommand {
      * @return 是否成功
      */
     private boolean handleRemoveAlly(Player player, String[] args, int guildId) {
-        if (args.length < 3) {
+        if (args.length < 2) {
             player.sendMessage(plugin.getConfigManager().getMessage("general.invalid-command"));
             return true;
         }
 
-        String targetGuildName = args[2];
+        String targetGuildName = args[1];
         Guild targetGuild = plugin.getGuildManager().getGuildByName(targetGuildName);
 
         if (targetGuild == null) {
-            player.sendMessage(plugin.getConfigManager().getMessage("guild.not-found", "name", targetGuildName));
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.not-found", "guild", targetGuildName));
             return true;
         }
 
@@ -211,12 +211,12 @@ public class AllyCommand implements SubCommand {
     public List<String> tabComplete(Player player, String[] args) {
         List<String> completions = new ArrayList<>();
 
-        if (args.length == 2) {
+        if (args.length == 1) {
             completions.add("add");
             completions.add("remove");
             completions.add("list");
-        } else if (args.length == 3) {
-            String subCommand = args[1].toLowerCase();
+        } else if (args.length == 2) {
+            String subCommand = args[0].toLowerCase();
             if (subCommand.equals("add") || subCommand.equals("remove")) {
                 // 获取玩家所在公会
                 GuildMember member = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());

@@ -7,6 +7,8 @@ general:
   player-only: "{prefix}&c此命令只能由玩家执行！"
   invalid-command: "{prefix}&c无效的命令！使用 &7/guild help &c查看帮助。"
   command-cooldown: "{prefix}&c请等待 &7{time} &c秒后再使用此命令！"
+  input-timeout: "{prefix}&c输入已超时，请重新操作！"
+  operation-cancelled: "{prefix}&7操作已取消。"
 
 guild:
   created: "{prefix}&a成功创建公会 &7{guild}&a！"
@@ -52,8 +54,18 @@ guild:
   owner-only: "{prefix}&c只有公会会长可以执行此操作！"
   action-failed: "{prefix}&c操作失败，请稍后再试！"
   ownership-transferred: "{prefix}&a你已将公会会长转让给 &7{player}&a！"
+  ownership-transfer-cancelled: "{prefix}&7会长转让已取消。"
   cannot-set-relation-self: "{prefix}&c你不能与自己的公会设置关系！"
   not-found: "{prefix}&c找不到名为 &7{guild} &c的公会！"
+  public-toggled: "{prefix}&a公会公开性已设置为: &7{state}"
+  enter-description: "{prefix}&e请在聊天中输入新的公会描述："
+  enter-announcement: "{prefix}&e请在聊天中输入新的公会公告："
+  description-updated: "{prefix}&a公会描述已更新为: &7{description}"
+  announcement-updated: "{prefix}&a公会公告已更新为: &7{announcement}"
+  update-failed: "{prefix}&c更新失败，请稍后再试！"
+  tag-color-already-set: "{prefix}&c该颜色已经是当前颜色了！"
+  tag-color-changed: "{prefix}&a公会标签颜色已更改为: &{color}{color}"
+  tag-color-failed: "{prefix}&c更改标签颜色失败，请稍后再试！"
 
 members:
   invited: "{prefix}&a你邀请了 &7{player} &a加入你的公会！"
@@ -85,6 +97,20 @@ members:
   cant-promote-same-rank: "{prefix}&c你不能提升相同或更高职位的成员！"
   cant-demote-leader: "{prefix}&c你不能降级公会会长！"
   cant-demote-same-rank: "{prefix}&c你不能降级相同或更高职位的成员！"
+  invalid-color: "{prefix}&c无效的颜色代码！请使用 0-9 或 a-f！"
+  color-updated: "{prefix}&a公会标签颜色已更新为 &7{color}&a！"
+  color-changed: "{prefix}&a玩家 &7{player} &a将公会标签颜色更改为 &7{color}&a！"
+  color-update-failed: "{prefix}&c更新公会标签颜色失败，请稍后再试！"
+  player-not-in-guild: "{prefix}&c玩家 &7{player} &c不在你的公会中！"
+  cannot-modify-self-role: "{prefix}&c你不能修改自己的职位！"
+  invalid-role: "{prefix}&c无效的职位！"
+  cannot-set-owner: "{prefix}&c不能将成员设置为会长！请使用转让会长命令！"
+  already-has-role: "{prefix}&c玩家 &7{player} &c已经是 &7{role} &c了！"
+  role-updated: "{prefix}&a成功将 &7{player} &a的职位设置为 &7{role}&a！"
+  role-update-failed: "{prefix}&c更新成员职位失败，请稍后再试！"
+  member-role-changed: "{prefix}&a玩家 &7{operator} &a将 &7{player} &a的职位设置为 &7{role}&a！"
+  available-roles-header: "{prefix}&7可用职位："
+  available-role-item: "&7- &f{role} &8(&7{display}&8)"
 
 land:
   claimed: "{prefix}&a成功声明此区域为公会领地！"
@@ -93,15 +119,24 @@ land:
   not-claimed: "{prefix}&c此区域不是公会领地！"
   not-your-claim: "{prefix}&c此区域不属于你的公会！"
   max-claims-reached: "{prefix}&c你的公会已达到最大领地数量 &7{max}&c！"
+  world-disabled: "{prefix}&c此世界不允许声明公会领地！"
   entered: "{prefix}&a你进入了公会 &7{guild} &a的领地！"
   left-area: "{prefix}&c你离开了公会 &7{guild} &c的领地！"
   no-permission: "{prefix}&c你没有权限在此区域执行此操作！"
+  protection-toggled: "{prefix}&a领地保护已{status}！"
+  pvp-toggled: "{prefix}&aPVP设置已{status}！"
+  guest-access-toggled: "{prefix}&a访客权限已{status}！"
+  build-permission-toggled: "{prefix}&a建筑权限已{status}！"
+  settings-reset: "{prefix}&a领地设置已重置为默认值！"
 
 bank:
   deposited: "{prefix}&a你向公会银行存入了 &7{amount} &a！"
   withdrawn: "{prefix}&a你从公会银行取出了 &7{amount} &a！"
   not-enough-funds: "{prefix}&c公会银行没有足够的资金！"
   capacity-reached: "{prefix}&c公会银行已达到最大容量 &7{capacity}&c！"
+  economy-disabled: "{prefix}&c经济系统未启用，无法进行此操作！"
+  deposit-failed: "{prefix}&c存款失败，请稍后再试！"
+  withdraw-failed: "{prefix}&c取款失败，请稍后再试！"
 
 war:
   declared: "{prefix}&c你的公会向 &7{guild} &c宣战！"
@@ -127,11 +162,26 @@ war:
   cannot-declare-war-on-ally: "{prefix}&c你不能向联盟公会宣战！"
   cannot-ally-during-war: "{prefix}&c战争期间无法结盟！"
 
+task:
+  reward-received: "{prefix}&a你获得了任务奖励: &7{money}&a！"
+  completed: "{prefix}&a玩家 &7{player} &a完成了任务: &f{task}&a！公会获得 &7{exp} &a经验，个人获得 &7{money} &a金币！"
+
 chat:
   guild-chat-enabled: "{prefix}&a公会聊天已启用！"
   guild-chat-disabled: "{prefix}&c公会聊天已禁用！"
   ally-chat-enabled: "{prefix}&a联盟聊天已启用！"
   ally-chat-disabled: "{prefix}&c联盟聊天已禁用！"
+  guild-chat-toggled: "{prefix}&a公会聊天已{status}！"
+  ally-chat-toggled: "{prefix}&a联盟聊天已{status}！"
+  filter-toggled: "{prefix}&a聊天过滤已{status}！"
+  auto-guild-chat-toggled: "{prefix}&a自动公会聊天已{status}！"
+  enter-format: "{prefix}&e请在聊天中输入新的聊天格式："
+  enter-prefix: "{prefix}&e请在聊天中输入新的聊天前缀："
+  format-too-long: "{prefix}&c聊天格式最多只能有 &7{max} &c个字符！"
+  prefix-too-long: "{prefix}&c聊天前缀最多只能有 &7{max} &c个字符！"
+  format-updated: "{prefix}&a聊天格式已更新为: &7{format}"
+  prefix-updated: "{prefix}&a聊天前缀已更新为: &7{value}"
+  settings-reset: "{prefix}&a聊天设置已重置为默认值！"
 
 alliance:
   created: "{prefix}&a你的公会与 &7{guild} &a结成了联盟！"
@@ -146,6 +196,7 @@ alliance:
   list-item: "&7- &f{guild} &8[&7{tag}&8]"
   list-footer: "&8&m-----------------------"
   request-sent: "{prefix}&a已向 &7{guild} &a发送结盟请求！"
+  request-failed: "{prefix}&c向 &7{guild} &c发送结盟请求失败！"
   request-received: "{prefix}&a收到来自 &7{guild} &a的结盟请求！"
   request-accepted: "{prefix}&a你接受了 &7{guild} &a的结盟请求！"
   request-rejected: "{prefix}&c你拒绝了 &7{guild} &c的结盟请求！"
@@ -155,6 +206,34 @@ alliance:
   alliance-request-failed: "{prefix}&c发送结盟请求失败，请稍后再试！"
   alliance-accept-failed: "{prefix}&c接受结盟请求失败，请稍后再试！"
   alliance-reject-failed: "{prefix}&c拒绝结盟请求失败，请稍后再试！"
+
+admin:
+  guild-disbanded: "{prefix}&a管理员 &7{admin} &a强制解散了公会 &7{guild}&a！"
+  disband-failed: "{prefix}&c强制解散公会失败，请稍后再试！"
+  reload-success: "{prefix}&a插件配置重载成功！"
+  reload-failed: "{prefix}&c插件配置重载失败，请查看控制台获取详细信息！"
+  exp-add-success: "{prefix}&a成功为公会 &7{guild} &a增加了 &7{amount} &a点经验！"
+  exp-set-success: "{prefix}&a成功将公会 &7{guild} &a的经验设置为 &7{amount} &a点！"
+  exp-take-success: "{prefix}&a成功为公会 &7{guild} &a扣除了 &7{amount} &a点经验！"
+  exp-operation-failed: "{prefix}&c经验操作失败，请稍后再试！"
+
+warp:
+  set-success: "{prefix}&a成功设置公会传送点！"
+  set-failed: "{prefix}&c设置公会传送点失败，请稍后再试！"
+  set-broadcast: "{prefix}&a玩家 &7{player} &a设置了新的公会传送点！"
+  delete-success: "{prefix}&a成功删除公会传送点！"
+  delete-failed: "{prefix}&c删除公会传送点失败，请稍后再试！"
+  delete-broadcast: "{prefix}&a玩家 &7{player} &a删除了公会传送点！"
+  not-found: "{prefix}&c公会还没有设置传送点！"
+  world-not-found: "{prefix}&c传送点所在的世界不存在！"
+  world-disabled: "{prefix}&c该世界不允许设置传送点！"
+  already-teleporting: "{prefix}&c你已经在传送中了！"
+  teleport-countdown: "{prefix}&a传送将在 &7{seconds} &a秒后开始，请勿移动！"
+  teleport-in: "{prefix}&a传送将在 &7{seconds} &a秒后开始..."
+  teleport-cancelled-move: "{prefix}&c传送已取消，因为你移动了！"
+  teleport-success: "{prefix}&a成功传送到公会传送点！"
+  reload-success: "{prefix}&a插件配置重载成功！"
+  reload-failed: "{prefix}&c插件配置重载失败，请查看控制台错误信息！"
 
 gui:
   guild-list-title: "公会列表 - 第 {page} 页"
@@ -188,3 +267,11 @@ gui:
   next-page: "&a下一页"
   previous-page: "&a上一页"
   back: "&c返回"
+
+placeholder:
+  war_status:
+    none: "和平"
+    in_war: "战争中"
+  alliance_status:
+    none: "无联盟"
+    allied: "已结盟"

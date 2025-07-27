@@ -6,6 +6,7 @@ import cn.i7mc.sagaguild.data.models.GuildMember;
 import cn.i7mc.sagaguild.data.models.JoinRequest;
 import cn.i7mc.sagaguild.gui.holders.JoinRequestHolder;
 import cn.i7mc.sagaguild.utils.ItemUtil;
+import cn.i7mc.sagaguild.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -53,7 +54,7 @@ public class JoinRequestListener implements Listener {
         GuildMember member = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
         if (member == null || !member.isElder() || member.getGuildId() != guild.getId()) {
             player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -108,7 +109,7 @@ public class JoinRequestListener implements Listener {
         if (guild == null) {
             plugin.getLogger().warning("玩家不在任何公会中");
             player.sendMessage("§c你不在任何公会中，无法处理请求");
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -120,7 +121,7 @@ public class JoinRequestListener implements Listener {
             if (success) {
                 player.sendMessage(plugin.getConfigManager().getMessage("guild.join-request-accepted"));
                 // 刷新GUI
-                player.closeInventory();
+                GUIUtils.closeGUI(player);
                 plugin.getGuiManager().openGuildManageGUI(player, guild);
             } else {
                 player.sendMessage(plugin.getConfigManager().getMessage("guild.join-request-accept-failed"));
@@ -132,7 +133,7 @@ public class JoinRequestListener implements Listener {
             if (success) {
                 player.sendMessage(plugin.getConfigManager().getMessage("guild.join-request-rejected"));
                 // 刷新GUI
-                player.closeInventory();
+                GUIUtils.closeGUI(player);
                 plugin.getGuiManager().openGuildManageGUI(player, guild);
             } else {
                 player.sendMessage(plugin.getConfigManager().getMessage("guild.join-request-reject-failed"));

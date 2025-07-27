@@ -8,6 +8,7 @@ import cn.i7mc.sagaguild.commands.subcommands.InviteCommand;
 import cn.i7mc.sagaguild.commands.subcommands.InviteAcceptCommand;
 import cn.i7mc.sagaguild.commands.subcommands.InviteRejectCommand;
 import cn.i7mc.sagaguild.commands.subcommands.LeaveCommand;
+import cn.i7mc.sagaguild.commands.subcommands.DisbandCommand;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,6 +58,9 @@ public class CommandManager {
         // 注册离开公会命令
         registerSubCommand(new LeaveCommand(plugin));
 
+        // 注册解散公会命令
+        registerSubCommand(new DisbandCommand(plugin));
+
         // 注册领地命令
         registerSubCommand(new ClaimCommand(plugin));
         registerSubCommand(new UnclaimCommand(plugin));
@@ -87,6 +91,20 @@ public class CommandManager {
 
         // 注册公会关系命令
         registerSubCommand(new RelationCommand(plugin));
+        
+        // 注册公会标签颜色命令
+        registerSubCommand(new TagColorCommand(plugin));
+        
+        // 注册设置职位命令
+        registerSubCommand(new SetRoleCommand(plugin));
+        
+        // 注册传送点命令
+        registerSubCommand(new SetWarpCommand(plugin));
+        registerSubCommand(new WarpCommand(plugin));
+        registerSubCommand(new DelWarpCommand(plugin));
+
+        // 注册管理员命令
+        registerSubCommand(new AdminCommand(plugin));
 
         // 其他子命令将在后续实现
     }

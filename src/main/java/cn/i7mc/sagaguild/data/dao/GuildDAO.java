@@ -29,8 +29,8 @@ public class GuildDAO {
      * @return 创建的公会ID，失败返回-1
      */
     public int createGuild(Guild guild) {
-        String sql = "INSERT INTO guilds (name, tag, description, announcement, owner_uuid, level, experience, is_public) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO guilds (name, tag, description, announcement, owner_uuid, level, experience, is_public, tag_color) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -43,6 +43,7 @@ public class GuildDAO {
             stmt.setInt(6, guild.getLevel());
             stmt.setInt(7, guild.getExperience());
             stmt.setInt(8, guild.isPublic() ? 1 : 0);
+            stmt.setString(9, guild.getTagColor());
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
@@ -239,7 +240,7 @@ public class GuildDAO {
      */
     public boolean updateGuild(Guild guild) {
         String sql = "UPDATE guilds SET name = ?, tag = ?, description = ?, announcement = ?, " +
-                     "owner_uuid = ?, level = ?, experience = ?, is_public = ? WHERE id = ?";
+                     "owner_uuid = ?, level = ?, experience = ?, is_public = ?, tag_color = ? WHERE id = ?";
 
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -258,7 +259,8 @@ public class GuildDAO {
             stmt.setInt(6, guild.getLevel());
             stmt.setInt(7, guild.getExperience());
             stmt.setInt(8, guild.isPublic() ? 1 : 0);
-            stmt.setInt(9, guild.getId());
+            stmt.setString(9, guild.getTagColor());
+            stmt.setInt(10, guild.getId());
 
             success = stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -328,7 +330,11 @@ public class GuildDAO {
         int experience = rs.getInt("experience");
         boolean isPublic = rs.getInt("is_public") == 1;
         Date createdAt = new Date(rs.getTimestamp("created_at").getTime());
+        String tagColor = rs.getString("tag_color");
+        if (tagColor == null) {
+            tagColor = "7"; // 默认灰色
+        }
 
-        return new Guild(id, name, tag, description, announcement, ownerUuid, level, experience, isPublic, createdAt);
+        return new Guild(id, name, tag, description, announcement, ownerUuid, level, experience, isPublic, createdAt, tagColor);
     }
 }

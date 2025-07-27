@@ -4,6 +4,7 @@ import cn.i7mc.sagaguild.SagaGuild;
 import cn.i7mc.sagaguild.data.models.Guild;
 import cn.i7mc.sagaguild.data.models.GuildMember;
 import cn.i7mc.sagaguild.gui.holders.GuildMemberActionHolder;
+import cn.i7mc.sagaguild.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -50,7 +51,7 @@ public class GuildMemberActionListener implements Listener {
         GuildMember playerMember = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
         if (playerMember == null || !playerMember.isElder()) {
             player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -64,7 +65,6 @@ public class GuildMemberActionListener implements Listener {
         switch (event.getSlot()) {
             case 11: // 提升职位
                 if (playerMember.isAdmin() && targetMember.getRole() != GuildMember.Role.OWNER) {
-                    player.closeInventory();
                     boolean success = plugin.getGuildManager().promoteMember(player, targetMember.getPlayerUuid());
                     if (success) {
                         // 获取更新后的成员信息
@@ -72,6 +72,9 @@ public class GuildMemberActionListener implements Listener {
                         player.sendMessage(plugin.getConfigManager().getMessage("members.player-promoted",
                                 "player", targetMember.getPlayerName(),
                                 "role", updatedMember.getRole().getDisplayName()));
+                        
+                        // 重新打开成员操作界面，显示更新后的信息
+                        plugin.getGuiManager().openGuildMemberActionGUI(player, guild, updatedMember, holder.getPage());
                     } else {
                         player.sendMessage(plugin.getConfigManager().getMessage("guild.action-failed"));
                     }
@@ -81,7 +84,6 @@ public class GuildMemberActionListener implements Listener {
                 break;
             case 13: // 降级职位
                 if (playerMember.isAdmin() && targetMember.getRole() != GuildMember.Role.MEMBER && targetMember.getRole() != GuildMember.Role.OWNER) {
-                    player.closeInventory();
                     boolean success = plugin.getGuildManager().demoteMember(player, targetMember.getPlayerUuid());
                     if (success) {
                         // 获取更新后的成员信息
@@ -89,6 +91,9 @@ public class GuildMemberActionListener implements Listener {
                         player.sendMessage(plugin.getConfigManager().getMessage("members.player-demoted",
                                 "player", targetMember.getPlayerName(),
                                 "role", updatedMember.getRole().getDisplayName()));
+                        
+                        // 重新打开成员操作界面，显示更新后的信息
+                        plugin.getGuiManager().openGuildMemberActionGUI(player, guild, updatedMember, holder.getPage());
                     } else {
                         player.sendMessage(plugin.getConfigManager().getMessage("guild.action-failed"));
                     }
@@ -98,11 +103,12 @@ public class GuildMemberActionListener implements Listener {
                 break;
             case 15: // 踢出公会
                 if (playerMember.canKick(targetMember.getRole())) {
-                    player.closeInventory();
                     boolean success = plugin.getGuildManager().kickMember(player, targetMember.getPlayerUuid());
                     if (success) {
                         player.sendMessage(plugin.getConfigManager().getMessage("members.player-kicked",
                                 "player", targetMember.getPlayerName()));
+                        // 踢出成功后返回成员列表
+                        plugin.getGuiManager().openGuildMemberGUI(player, guild, holder.getPage());
                     } else {
                         player.sendMessage(plugin.getConfigManager().getMessage("guild.action-failed"));
                     }
@@ -112,21 +118,24 @@ public class GuildMemberActionListener implements Listener {
                 break;
             case 31: // 转让会长
                 if (playerMember.isOwner()) {
-                    player.closeInventory();
-                    boolean success = plugin.getGuildManager().transferOwnership(player, targetMember.getPlayerUuid());
-                    if (success) {
-                        player.sendMessage(plugin.getConfigManager().getMessage("guild.ownership-transferred",
-                                "player", targetMember.getPlayerName()));
-                    } else {
-                        player.sendMessage(plugin.getConfigManager().getMessage("guild.action-failed"));
-                    }
+                    // 关闭GUI并启动确认流程
+                    GUIUtils.closeGUI(player);
+                    player.sendMessage("§c§l警告: 你确定要将公会会长转让给 §f" + targetMember.getPlayerName() + " §c§l吗？");
+                    player.sendMessage("§c此操作将使你失去公会的完全控制权！");
+                    player.sendMessage("§e如果确认转让，请在30秒内输入: §fconfirm §e或 §f确认");
+                    player.sendMessage("§7输入其他任何内容或等待超时将取消转让。");
+                    
+                    // 设置确认输入状态
+                    Object[] confirmData = new Object[]{targetMember, holder.getPage()};
+                    plugin.getPlayerInputListener().setPlayerInputState(player, 
+                        cn.i7mc.sagaguild.listeners.PlayerInputListener.InputType.OWNERSHIP_TRANSFER_CONFIRM, 
+                        guild, confirmData);
                 } else {
                     player.sendMessage(plugin.getConfigManager().getMessage("guild.owner-only"));
                 }
                 break;
-            case 49: // 返回
-                player.closeInventory();
-                plugin.getGuiManager().openGuildMemberGUI(player, guild, 1);
+            case 27: // 返回
+                plugin.getGuiManager().openGuildMemberGUI(player, guild, holder.getPage());
                 break;
         }
     }
