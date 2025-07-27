@@ -988,6 +988,11 @@ PlaceholderAPI 占位符系统为 SagaGuild 提供了与其他插件的集成能
 - `%sg_top5_level_value%` - 等级第5名公会的等级值
 - 支持 top1 到 top10 的任意排名
 
+###### 公会战争胜利次数排行榜
+- `%sg_top1_war_gname%` - 等级第1名公会名称
+- `%sg_top1_war_value%` - 等级第1名公会的战争胜利次数
+- 支持 top1 到 top10 的任意排名
+
 #### 实现内容
 1. 创建了排行榜管理器
    - `RankingManager` 类管理所有排行榜数据
