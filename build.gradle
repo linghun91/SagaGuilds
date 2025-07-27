@@ -1,0 +1,123 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+group = 'cn.i7mc'
+version = '1.0.9.11'
+
+def readVersionFromFile() {
+    def versionFile = file('version.txt')
+    if (!versionFile.exists()) {
+        versionFile.text = version
+    }
+    return versionFile.text.trim()
+}
+
+def writeVersionToFile(String newVersion) {
+    def versionFile = file('version.txt')
+    versionFile.text = newVersion
+}
+
+version = readVersionFromFile()
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'papermc-repo'
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+    maven {
+        name = 'sonatype'
+        url = 'https://oss.sonatype.org/content/groups/public/'
+    }
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT'
+
+    compileOnly 'net.kyori:adventure-api:4.14.0'
+    compileOnly 'net.kyori:adventure-text-serializer-legacy:4.14.0'
+    compileOnly 'net.kyori:adventure-text-minimessage:4.14.0'
+}
+
+def targetJavaVersion = 17
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = targetJavaVersion
+}
+
+processResources {
+    inputs.property('version', project.version)
+    filteringCharset 'UTF-8'
+
+    doFirst {
+        filesMatching('plugin.yml') {
+            expand(version: project.version)
+        }
+    }
+}
+
+shadowJar {
+    archiveBaseName.set(project.name)
+    archiveClassifier.set('')
+    archiveVersion.set(project.version.toString())
+}
+
+task incrementVersion {
+    doLast {
+        String currentVersion = readVersionFromFile()
+
+        def versionParts = currentVersion.split('\\.')
+        if (versionParts.length > 0) {
+            def lastPart = versionParts[versionParts.length - 1]
+            try {
+                def lastNumber = Integer.parseInt(lastPart)
+                lastNumber++
+                versionParts[versionParts.length - 1] = lastNumber.toString()
+
+                def newVersion = versionParts.join('.')
+
+                writeVersionToFile(newVersion)
+
+                project.version = newVersion
+
+                println "Version: ${currentVersion} -> ${newVersion}"
+            } catch (NumberFormatException e) {
+                println "lastVersion: ${lastPart}"
+            }
+        }
+    }
+}
+
+tasks.processResources.dependsOn incrementVersion
+tasks.shadowJar.dependsOn processResources
+tasks.build.dependsOn tasks.shadowJar
+
+tasks.shadowJar.doFirst {
+    archiveVersion.set(project.version.toString())
+}
+
+task updateBuildGradleVersion {
+    doLast {
+        def buildGradleFile = file('build.gradle')
+        def content = buildGradleFile.text
+
+        content = content.replaceFirst(/version = '[^']+'/, "version = '${project.version}'")
+
+        buildGradleFile.text = content
+
+        println "build.gradleproject.version: ${project.version}"
+    }
+}
+
+tasks.build.finalizedBy updateBuildGradleVersion
