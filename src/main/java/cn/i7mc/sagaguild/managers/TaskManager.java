@@ -7,6 +7,7 @@ import cn.i7mc.sagaguild.data.models.GuildMember;
 import cn.i7mc.sagaguild.data.models.GuildTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -144,17 +145,8 @@ public class TaskManager {
                 }
             }
 
-            // 如果任务数量不足，生成新任务
-            if (tasks.size() < 3) {
-                int newTaskCount = 3 - tasks.size();
-                for (int i = 0; i < newTaskCount; i++) {
-                    GuildTask newTask = generateRandomTask(guildId);
-                    int taskId = taskDAO.createTask(newTask);
-                    if (taskId != -1) {
-                        tasks.add(newTask);
-                    }
-                }
-            }
+            // 移除自动生成任务的逻辑，避免创建默认任务
+            // 公会可以通过命令手动创建任务
         }
     }
 
@@ -233,8 +225,9 @@ public class TaskManager {
      * @param type 任务类型
      * @param target 任务目标
      * @param amount 增加数量
+     * @param playerUuid 贡献玩家的UUID
      */
-    public void updateTaskProgress(int guildId, GuildTask.Type type, String target, int amount) {
+    public void updateTaskProgress(int guildId, GuildTask.Type type, String target, int amount, UUID playerUuid) {
         // 获取公会任务
         List<GuildTask> tasks = guildTasks.getOrDefault(guildId, new ArrayList<>());
 
@@ -253,7 +246,7 @@ public class TaskManager {
 
                     // 如果任务完成，发放奖励
                     if (completed) {
-                        giveTaskReward(task);
+                        giveTaskReward(task, playerUuid);
                     }
                 }
             }
@@ -263,22 +256,45 @@ public class TaskManager {
     /**
      * 发放任务奖励
      * @param task 任务对象
+     * @param completerUuid 完成任务的玩家UUID
      */
-    private void giveTaskReward(GuildTask task) {
+    private void giveTaskReward(GuildTask task, UUID completerUuid) {
         // 增加公会经验
         plugin.getGuildManager().addGuildExperience(task.getGuildId(), task.getRewardExp());
 
-        // 增加公会银行余额
-        plugin.getBankManager().deposit(task.getGuildId(), task.getRewardMoney());
+        // 发放个人金币奖励给完成任务的玩家
+        EconomyManager economyManager = plugin.getEconomyManager();
+        if (economyManager.isEnabled()) {
+            Player completer = Bukkit.getPlayer(completerUuid);
+            if (completer != null) {
+                economyManager.depositPlayer(completer, task.getRewardMoney());
+                completer.sendMessage(plugin.getConfigManager().getMessage("task.reward-received",
+                        "money", economyManager.format(task.getRewardMoney())));
+            } else {
+                // 如果玩家离线，尝试给离线玩家发放奖励
+                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(completerUuid);
+                economyManager.depositPlayer(offlinePlayer, task.getRewardMoney());
+            }
+            
+            // 记录日志
+            plugin.getLogger().info("任务奖励发放: " + completerUuid + " 获得 " + task.getRewardMoney() + " 金币");
+        } else {
+            // 如果经济系统不可用，将金币存入公会银行
+            plugin.getBankManager().deposit(task.getGuildId(), task.getRewardMoney());
+        }
 
         // 通知公会成员
         Guild guild = plugin.getGuildManager().getGuildById(task.getGuildId());
         if (guild != null) {
+            String completerName = Bukkit.getOfflinePlayer(completerUuid).getName();
             for (GuildMember member : plugin.getGuildManager().getGuildMembers(guild.getId())) {
                 Player player = Bukkit.getPlayer(member.getPlayerUuid());
                 if (player != null && player.isOnline()) {
-                    player.sendMessage("§a公会任务完成: §f" + task.getDescription());
-                    player.sendMessage("§a奖励: §f" + task.getRewardExp() + " 经验, " + task.getRewardMoney() + " 金钱");
+                    player.sendMessage(plugin.getConfigManager().getMessage("task.completed",
+                            "task", task.getDescription(),
+                            "player", completerName,
+                            "exp", String.valueOf(task.getRewardExp()),
+                            "money", economyManager.isEnabled() ? economyManager.format(task.getRewardMoney()) : String.valueOf(task.getRewardMoney())));
                 }
             }
         }

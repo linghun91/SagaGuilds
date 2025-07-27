@@ -83,7 +83,17 @@ public class BankManager {
         }
 
         // 检查玩家是否有足够的金钱
-        // TODO: 检查玩家金钱
+        EconomyManager economyManager = plugin.getEconomyManager();
+        if (!economyManager.isEnabled()) {
+            player.sendMessage(plugin.getConfigManager().getMessage("bank.economy-disabled"));
+            return false;
+        }
+        
+        if (!economyManager.hasBalance(player, amount)) {
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.not-enough-money",
+                    "amount", economyManager.format(amount)));
+            return false;
+        }
 
         // 检查银行是否已满
         double balance = getBalance(guild.getId());
@@ -96,13 +106,16 @@ public class BankManager {
         }
 
         // 扣除玩家金钱
-        // TODO: 扣除玩家金钱
+        if (!economyManager.withdrawPlayer(player, amount)) {
+            player.sendMessage(plugin.getConfigManager().getMessage("bank.deposit-failed"));
+            return false;
+        }
 
         // 存款
         boolean success = bankDAO.deposit(guild.getId(), amount);
         if (!success) {
             // 返还玩家金钱
-            // TODO: 返还玩家金钱
+            economyManager.depositPlayer(player, amount);
 
             player.sendMessage("§c存款失败，请稍后再试！");
             return false;
@@ -182,7 +195,20 @@ public class BankManager {
         }
 
         // 给予玩家金钱
-        // TODO: 给予玩家金钱
+        EconomyManager economyManager = plugin.getEconomyManager();
+        if (!economyManager.isEnabled()) {
+            // 如果经济系统不可用，返还金钱到银行
+            bankDAO.deposit(guild.getId(), amount);
+            player.sendMessage(plugin.getConfigManager().getMessage("bank.economy-disabled"));
+            return false;
+        }
+        
+        if (!economyManager.depositPlayer(player, amount)) {
+            // 如果给予失败，返还金钱到银行
+            bankDAO.deposit(guild.getId(), amount);
+            player.sendMessage(plugin.getConfigManager().getMessage("bank.withdraw-failed"));
+            return false;
+        }
 
         // 发送成功消息
         player.sendMessage(plugin.getConfigManager().getMessage("bank.withdrawn",

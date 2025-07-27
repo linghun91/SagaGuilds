@@ -473,6 +473,56 @@ public class AllianceDAO {
     }
 
     /**
+     * 删除公会的所有联盟关系
+     * @param guildId 公会ID
+     * @return 是否成功
+     */
+    public boolean deleteAllGuildAlliances(int guildId) {
+        String sql = "DELETE FROM alliances WHERE guild1_id = ? OR guild2_id = ?";
+
+        try (Connection conn = plugin.getDatabaseManager().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, guildId);
+            stmt.setInt(2, guildId);
+
+            int affectedRows = stmt.executeUpdate();
+            if (plugin.getConfig().getBoolean("debug", false)) {
+                plugin.getLogger().info("删除公会所有联盟关系: 删除了 " + affectedRows + " 条记录 (公会ID=" + guildId + ")");
+            }
+            return true;
+        } catch (SQLException e) {
+            plugin.getLogger().severe("删除公会所有联盟关系失败: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 清理公会的所有相关联盟请求
+     * @param guildId 公会ID
+     * @return 是否成功
+     */
+    public boolean cleanupAllRelatedRequests(int guildId) {
+        String sql = "DELETE FROM alliance_requests WHERE requester_id = ? OR target_id = ?";
+
+        try (Connection conn = plugin.getDatabaseManager().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, guildId);
+            stmt.setInt(2, guildId);
+
+            int affectedRows = stmt.executeUpdate();
+            if (plugin.getConfig().getBoolean("debug", false)) {
+                plugin.getLogger().info("清理公会所有联盟请求: 删除了 " + affectedRows + " 条记录 (公会ID=" + guildId + ")");
+            }
+            return true;
+        } catch (SQLException e) {
+            plugin.getLogger().severe("清理公会所有联盟请求失败: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 从ResultSet中提取联盟请求对象
      * @param rs ResultSet
      * @return 联盟请求对象

@@ -41,7 +41,8 @@ public class PlayerListener implements Listener {
      */
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        // 暂时不需要处理
+        // 清理传送任务
+        plugin.getWarpManager().cleanupPlayer(event.getPlayer().getUniqueId());
     }
     
     /**

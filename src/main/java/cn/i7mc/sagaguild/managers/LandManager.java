@@ -90,6 +90,12 @@ public class LandManager {
             return false;
         }
 
+        // 检查当前世界是否允许声明领地
+        if (isWorldDisabled(chunk.getWorld().getName())) {
+            player.sendMessage(plugin.getConfigManager().getMessage("land.world-disabled"));
+            return false;
+        }
+
         // 检查区块是否已被声明
         String chunkKey = getChunkKey(chunk);
         if (landsByChunk.containsKey(chunkKey)) {
@@ -108,13 +114,38 @@ public class LandManager {
             return false;
         }
 
-        // TODO: 检查声明费用
+        // 检查声明费用
+        double claimCost = config.getDouble("land.claim-cost", 500);
+        if (claimCost > 0) {
+            // 检查经济系统是否启用
+            if (!plugin.getEconomyManager().isEnabled()) {
+                player.sendMessage(plugin.getConfigManager().getMessage("bank.economy-disabled"));
+                return false;
+            }
+            
+            // 检查玩家余额
+            if (!plugin.getEconomyManager().hasBalance(player, claimCost)) {
+                player.sendMessage(plugin.getConfigManager().getMessage("guild.not-enough-money",
+                    "amount", plugin.getEconomyManager().format(claimCost)));
+                return false;
+            }
+            
+            // 扣除费用
+            if (!plugin.getEconomyManager().withdrawPlayer(player, claimCost)) {
+                player.sendMessage("§c扣除费用失败，请稍后再试！");
+                return false;
+            }
+        }
 
         // 声明领地
         GuildLand land = new GuildLand(guild.getId(), chunk.getWorld().getName(), chunk.getX(), chunk.getZ());
         int landId = landDAO.claimLand(land);
 
         if (landId == -1) {
+            // 如果声明失败，退还费用
+            if (claimCost > 0 && plugin.getEconomyManager().isEnabled()) {
+                plugin.getEconomyManager().depositPlayer(player, claimCost);
+            }
             player.sendMessage("§c声明领地失败，请稍后再试！");
             return false;
         }
@@ -187,6 +218,33 @@ public class LandManager {
     }
 
     /**
+     * 取消公会所有领地声明
+     * @param guildId 公会ID
+     * @return 是否成功
+     */
+    public boolean unclaimAllGuildLands(int guildId) {
+        // 获取公会所有领地
+        Map<String, GuildLand> guildLands = landsByGuild.get(guildId);
+        if (guildLands == null || guildLands.isEmpty()) {
+            return true; // 没有领地，直接返回成功
+        }
+
+        // 删除数据库中的所有领地
+        boolean success = landDAO.unclaimAllLands(guildId);
+        if (!success) {
+            return false;
+        }
+
+        // 更新缓存
+        for (String chunkKey : guildLands.keySet()) {
+            landsByChunk.remove(chunkKey);
+        }
+        landsByGuild.remove(guildId);
+
+        return true;
+    }
+
+    /**
      * 检查区块是否被声明
      * @param chunk 区块
      * @return 是否被声明
@@ -240,6 +298,17 @@ public class LandManager {
      */
     private String getChunkKey(Chunk chunk) {
         return chunk.getWorld().getName() + ":" + chunk.getX() + ":" + chunk.getZ();
+    }
+
+    /**
+     * 检查指定世界是否禁止声明领地
+     * @param worldName 世界名称
+     * @return 是否禁止声明领地
+     */
+    private boolean isWorldDisabled(String worldName) {
+        FileConfiguration config = plugin.getConfig();
+        List<String> disabledWorlds = config.getStringList("land.disabled-worlds");
+        return disabledWorlds.contains(worldName);
     }
 
     /**

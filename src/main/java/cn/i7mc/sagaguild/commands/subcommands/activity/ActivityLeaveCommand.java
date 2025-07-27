@@ -46,7 +46,7 @@ public class ActivityLeaveCommand implements SubCommand {
     @Override
     public boolean execute(Player player, String[] args) {
         // 检查参数数量
-        if (args.length < 2) {
+        if (args.length < 1) {
             PlayerUtil.sendMessage(player, Component.text("用法: " + getSyntax(), NamedTextColor.RED));
             return false;
         }
@@ -61,7 +61,7 @@ public class ActivityLeaveCommand implements SubCommand {
         // 解析活动ID
         int activityId;
         try {
-            activityId = Integer.parseInt(args[1]);
+            activityId = Integer.parseInt(args[0]);
         } catch (NumberFormatException e) {
             PlayerUtil.sendMessage(player, Component.text("无效的活动ID！", NamedTextColor.RED));
             return false;
@@ -99,7 +99,7 @@ public class ActivityLeaveCommand implements SubCommand {
     public List<String> tabComplete(Player player, String[] args) {
         List<String> completions = new ArrayList<>();
 
-        if (args.length == 2) {
+        if (args.length == 1) {
             // 获取玩家参与的活动
             List<ActivityParticipant> participations = plugin.getActivityManager().getPlayerParticipations(player.getUniqueId());
 

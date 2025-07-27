@@ -5,6 +5,7 @@ import cn.i7mc.sagaguild.data.models.Guild;
 import cn.i7mc.sagaguild.data.models.GuildMember;
 import cn.i7mc.sagaguild.data.models.GuildMember.Role;
 import cn.i7mc.sagaguild.gui.holders.GuildMemberHolder;
+import cn.i7mc.sagaguild.utils.GUIUtils;
 import cn.i7mc.sagaguild.utils.ItemUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -57,7 +58,7 @@ public class GuildMemberListener implements Listener {
         GuildMember playerMember = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
         if (playerMember == null || !playerMember.isElder()) {
             player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -81,7 +82,6 @@ public class GuildMemberListener implements Listener {
             plugin.getGuiManager().openGuildMemberGUI(player, guild, page + 1);
         } else if (event.getSlot() == 49 && clickedItem.getType() == Material.BARRIER) {
             // 点击返回按钮
-            player.closeInventory();
             plugin.getGuiManager().openGuildManageGUI(player, guild);
         }
     }
@@ -159,7 +159,7 @@ public class GuildMemberListener implements Listener {
         }
 
         // 打开成员管理菜单
-        player.closeInventory();
+        GUIUtils.closeGUI(player);
         plugin.getGuiManager().openGuildMemberActionGUI(player, guild, targetMember);
     }
 

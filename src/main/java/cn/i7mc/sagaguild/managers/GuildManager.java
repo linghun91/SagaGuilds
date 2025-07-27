@@ -161,14 +161,40 @@ public class GuildManager {
             return false;
         }
 
+        return performGuildDisband(guildId);
+    }
+
+    /**
+     * 强制解散公会（管理员权限）
+     * @param guildId 公会ID
+     * @return 是否成功
+     */
+    public boolean forceDisband(int guildId) {
+        return performGuildDisband(guildId);
+    }
+
+    /**
+     * 执行公会解散的核心逻辑
+     * @param guildId 公会ID
+     * @return 是否成功
+     */
+    private boolean performGuildDisband(int guildId) {
+        Guild guild = getGuildById(guildId);
+        if (guild == null) {
+            return false;
+        }
+
+        // 获取所有成员（在删除前获取，用于通知）
+        List<GuildMember> members = memberDAO.getGuildMembers(guildId);
+
+        // 清理公会相关的所有数据
+        cleanupGuildData(guildId);
+
         // 删除公会
         boolean success = guildDAO.deleteGuild(guildId);
         if (!success) {
             return false;
         }
-
-        // 获取所有成员
-        List<GuildMember> members = memberDAO.getGuildMembers(guildId);
 
         // 删除所有成员
         memberDAO.deleteAllGuildMembers(guildId);
@@ -182,7 +208,49 @@ public class GuildManager {
             playerGuildMap.remove(member.getPlayerUuid());
         }
 
+        // 通知所有在线成员公会已解散
+        notifyMembersGuildDisbanded(members, guild.getName());
+
         return true;
+    }
+
+    /**
+     * 清理公会相关的所有数据
+     * @param guildId 公会ID
+     */
+    private void cleanupGuildData(int guildId) {
+        try {
+            // 清理公会领地
+            if (plugin.getLandManager() != null) {
+                plugin.getLandManager().unclaimAllGuildLands(guildId);
+            }
+
+            // 清理公会联盟
+            if (plugin.getAllianceManager() != null) {
+                plugin.getAllianceManager().cleanupGuildAlliances(guildId);
+            }
+
+            // TODO: 清理公会战争、活动、任务等其他数据
+            // 这些功能的清理方法将在后续实现
+
+        } catch (Exception e) {
+            plugin.getLogger().warning("清理公会数据时发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 通知所有在线成员公会已解散
+     * @param members 成员列表
+     * @param guildName 公会名称
+     */
+    private void notifyMembersGuildDisbanded(List<GuildMember> members, String guildName) {
+        for (GuildMember member : members) {
+            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(member.getPlayerUuid());
+            if (offlinePlayer.isOnline()) {
+                Player onlinePlayer = (Player) offlinePlayer;
+                onlinePlayer.sendMessage(plugin.getConfigManager().getMessage("guild.disbanded", "guild", guildName));
+            }
+        }
     }
 
     /**
@@ -457,6 +525,17 @@ public class GuildManager {
      * @return 是否成功
      */
     public boolean joinGuild(Player player, int guildId) {
+        return joinGuild(player, guildId, false);
+    }
+
+    /**
+     * 玩家加入公会（支持邀请）
+     * @param player 玩家
+     * @param guildId 公会ID
+     * @param fromInvitation 是否通过邀请加入
+     * @return 是否成功
+     */
+    public boolean joinGuild(Player player, int guildId, boolean fromInvitation) {
         Guild guild = getGuildById(guildId);
         if (guild == null) {
             return false;
@@ -467,8 +546,8 @@ public class GuildManager {
             return false;
         }
 
-        // 检查公会是否公开
-        if (!guild.isPublic()) {
+        // 检查公会是否公开（如果是通过邀请加入，则跳过此检查）
+        if (!guild.isPublic() && !fromInvitation) {
             // 检查是否有邀请
             player.sendMessage(plugin.getConfigManager().getMessage("guild.need-invitation"));
             return false;
@@ -841,6 +920,86 @@ public class GuildManager {
         guildDAO.updateGuild(guild);
 
         return levelUp;
+    }
+    
+    /**
+     * 设置公会经验值（管理员专用）
+     * @param guildId 公会ID
+     * @param experience 新的经验值
+     * @return 是否成功
+     */
+    public boolean setGuildExperience(int guildId, int experience) {
+        Guild guild = getGuildById(guildId);
+        if (guild == null) {
+            return false;
+        }
+        
+        // 设置经验值
+        guild.setExperience(experience);
+        
+        // 根据新经验值重新计算等级
+        calculateGuildLevel(guild);
+        
+        // 更新数据库
+        boolean success = guildDAO.updateGuild(guild);
+        
+        if (success) {
+            // 更新缓存
+            guildsById.put(guild.getId(), guild);
+            guildsByName.put(guild.getName().toLowerCase(), guild);
+        }
+        
+        return success;
+    }
+    
+    /**
+     * 根据经验值计算并设置公会等级
+     * @param guild 公会对象
+     */
+    private void calculateGuildLevel(Guild guild) {
+        int experience = guild.getExperience();
+        int level = 1;
+        
+        // 从配置文件获取最大等级
+        int maxLevel = plugin.getConfig().getInt("levels.max-level", 10);
+        
+        // 根据经验值计算等级
+        for (int i = 1; i <= maxLevel; i++) {
+            int requiredExp = getRequiredExperienceForLevel(i);
+            if (experience >= requiredExp) {
+                level = i;
+            } else {
+                break;
+            }
+        }
+        
+        guild.setLevel(level);
+    }
+    
+    /**
+     * 获取指定等级所需的经验值
+     * @param level 等级
+     * @return 所需经验值
+     */
+    private int getRequiredExperienceForLevel(int level) {
+        // 使用配置文件中的等级系统设置
+        if (level <= 1) {
+            return 0;
+        }
+        
+        FileConfiguration config = plugin.getConfig();
+        int baseExp = config.getInt("levels.base-exp", 1000);
+        int expIncrease = config.getInt("levels.exp-increase", 500);
+        int maxLevel = config.getInt("levels.max-level", 10);
+        
+        // 超过最大等级返回最大值
+        if (level > maxLevel) {
+            return Integer.MAX_VALUE;
+        }
+        
+        // 计算累积经验需求
+        // 1级: 0, 2级: base-exp, 3级: base-exp + exp-increase, 4级: base-exp + exp-increase * 2, ...
+        return baseExp + (expIncrease * (level - 2));
     }
 
     /**

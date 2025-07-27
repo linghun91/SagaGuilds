@@ -34,7 +34,7 @@ public class WarCommand implements SubCommand {
     
     @Override
     public String getSyntax() {
-        return "/guild war <declare/accept/status/history> [公会名]";
+        return "/guild war <declare/accept/reject/surrender/status/history> [公会名]";
     }
     
     @Override
@@ -71,6 +71,19 @@ public class WarCommand implements SubCommand {
                 }
                 
                 return plugin.getWarManager().acceptWarInvitation(player, args[1]);
+                
+            case "reject":
+                // 拒绝公会战
+                if (args.length < 2) {
+                    player.sendMessage("§c用法: /guild war reject <公会名>");
+                    return true;
+                }
+                
+                return plugin.getWarManager().rejectWarInvitation(player, args[1]);
+                
+            case "surrender":
+                // 投降
+                return plugin.getWarManager().surrender(player);
                 
             case "status":
                 // 查看当前战争状态
@@ -215,7 +228,7 @@ public class WarCommand implements SubCommand {
         
         if (args.length == 1) {
             String arg = args[0].toLowerCase();
-            List<String> subCommands = Arrays.asList("declare", "accept", "status", "history");
+            List<String> subCommands = Arrays.asList("declare", "accept", "reject", "surrender", "status", "history");
             
             for (String subCommand : subCommands) {
                 if (subCommand.startsWith(arg)) {
@@ -224,7 +237,7 @@ public class WarCommand implements SubCommand {
             }
         } else if (args.length == 2) {
             String subCommand = args[0].toLowerCase();
-            if (subCommand.equals("declare") || subCommand.equals("accept")) {
+            if (subCommand.equals("declare") || subCommand.equals("accept") || subCommand.equals("reject")) {
                 String arg = args[1].toLowerCase();
                 for (Guild guild : plugin.getGuildManager().getAllGuilds()) {
                     if (guild.getName().toLowerCase().startsWith(arg)) {

@@ -6,6 +6,7 @@ import cn.i7mc.sagaguild.data.models.GuildMember;
 import cn.i7mc.sagaguild.data.models.GuildWar;
 import cn.i7mc.sagaguild.gui.holders.GuildRelationHolder;
 import cn.i7mc.sagaguild.utils.ItemUtil;
+import cn.i7mc.sagaguild.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -57,7 +58,7 @@ public class GuildRelationListener implements Listener {
         // 获取玩家所在公会
         Guild playerGuild = plugin.getGuildManager().getPlayerGuild(player.getUniqueId());
         if (playerGuild == null) {
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             player.sendMessage(plugin.getConfigManager().getMessage("guild.not-in-guild"));
             return;
         }
@@ -65,7 +66,7 @@ public class GuildRelationListener implements Listener {
         // 检查玩家权限
         GuildMember member = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
         if (member == null || (!member.isOwner() && !member.isAdmin())) {
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission"));
             return;
         }
@@ -85,7 +86,6 @@ public class GuildRelationListener implements Listener {
                 handleCeasefire(player, playerGuild, targetGuild);
                 break;
             case 49: // 返回
-                player.closeInventory();
                 plugin.getGuiManager().openGuildListGUI(player, 1);
                 break;
         }
@@ -101,7 +101,7 @@ public class GuildRelationListener implements Listener {
         // 检查是否已经是联盟
         if (plugin.getAllianceManager().areGuildsAllied(playerGuild.getId(), targetGuild.getId())) {
             player.sendMessage(plugin.getConfigManager().getMessage("alliance.already-allied"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -109,7 +109,7 @@ public class GuildRelationListener implements Listener {
         GuildWar war = plugin.getWarManager().getActiveWarBetweenGuilds(playerGuild.getId(), targetGuild.getId());
         if (war != null) {
             player.sendMessage(plugin.getConfigManager().getMessage("war.cannot-ally-during-war"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -121,7 +121,7 @@ public class GuildRelationListener implements Listener {
             player.sendMessage(plugin.getConfigManager().getMessage("alliance.alliance-request-failed"));
         }
 
-        player.closeInventory();
+        GUIUtils.closeGUI(player);
     }
 
     /**
@@ -134,14 +134,14 @@ public class GuildRelationListener implements Listener {
         // 检查是否已经处于战争状态
         if (plugin.getWarManager().areGuildsAtWar(playerGuild.getId(), targetGuild.getId())) {
             player.sendMessage(plugin.getConfigManager().getMessage("guild.already-at-war"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
         // 检查是否是联盟
         if (plugin.getAllianceManager().areGuildsAllied(playerGuild.getId(), targetGuild.getId())) {
             player.sendMessage(plugin.getConfigManager().getMessage("guild.cannot-declare-war-on-ally"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -153,7 +153,7 @@ public class GuildRelationListener implements Listener {
             player.sendMessage(plugin.getConfigManager().getMessage("war.war-declaration-failed"));
         }
 
-        player.closeInventory();
+        GUIUtils.closeGUI(player);
     }
 
     /**
@@ -166,7 +166,7 @@ public class GuildRelationListener implements Listener {
         // 检查是否是联盟
         if (!plugin.getAllianceManager().areGuildsAllied(playerGuild.getId(), targetGuild.getId())) {
             player.sendMessage(plugin.getConfigManager().getMessage("alliance.not-allied"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -178,7 +178,7 @@ public class GuildRelationListener implements Listener {
             player.sendMessage(plugin.getConfigManager().getMessage("alliance.break-failed"));
         }
 
-        player.closeInventory();
+        GUIUtils.closeGUI(player);
     }
 
     /**
@@ -191,7 +191,7 @@ public class GuildRelationListener implements Listener {
         // 检查是否处于战争状态
         if (!plugin.getWarManager().areGuildsAtWar(playerGuild.getId(), targetGuild.getId())) {
             player.sendMessage(plugin.getConfigManager().getMessage("guild.not-at-war"));
-            player.closeInventory();
+            GUIUtils.closeGUI(player);
             return;
         }
 
@@ -203,6 +203,6 @@ public class GuildRelationListener implements Listener {
             player.sendMessage(plugin.getConfigManager().getMessage("guild.ceasefire-request-failed"));
         }
 
-        player.closeInventory();
+        GUIUtils.closeGUI(player);
     }
 }

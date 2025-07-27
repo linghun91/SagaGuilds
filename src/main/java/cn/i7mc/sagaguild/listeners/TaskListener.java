@@ -50,7 +50,8 @@ public class TaskListener implements Listener {
                 guild.getId(),
                 GuildTask.Type.KILL_MOBS,
                 event.getEntityType().name(),
-                1
+                1,
+                player.getUniqueId()
         );
     }
     
@@ -73,7 +74,8 @@ public class TaskListener implements Listener {
                 guild.getId(),
                 GuildTask.Type.BREAK_BLOCKS,
                 event.getBlock().getType().name(),
-                1
+                1,
+                player.getUniqueId()
         );
     }
     
@@ -96,7 +98,8 @@ public class TaskListener implements Listener {
                 guild.getId(),
                 GuildTask.Type.PLACE_BLOCKS,
                 event.getBlock().getType().name(),
-                1
+                1,
+                player.getUniqueId()
         );
     }
     
@@ -124,7 +127,8 @@ public class TaskListener implements Listener {
                 guild.getId(),
                 GuildTask.Type.FISH,
                 "ANY",
-                1
+                1,
+                player.getUniqueId()
         );
     }
     
@@ -152,7 +156,8 @@ public class TaskListener implements Listener {
                 guild.getId(),
                 GuildTask.Type.CRAFT,
                 event.getRecipe().getResult().getType().name(),
-                1
+                1,
+                player.getUniqueId()
         );
     }
 }

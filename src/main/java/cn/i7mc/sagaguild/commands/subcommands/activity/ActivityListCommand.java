@@ -64,9 +64,9 @@ public class ActivityListCommand implements SubCommand {
 
         // 解析页码
         int page = 1;
-        if (args.length > 1) {
+        if (args.length > 0) {
             try {
-                page = Integer.parseInt(args[1]);
+                page = Integer.parseInt(args[0]);
                 if (page < 1) {
                     page = 1;
                 }
@@ -194,7 +194,7 @@ public class ActivityListCommand implements SubCommand {
     public List<String> tabComplete(Player player, String[] args) {
         List<String> completions = new ArrayList<>();
 
-        if (args.length == 2) {
+        if (args.length == 1) {
             // 页码，提供1-5页
             completions.add("1");
             completions.add("2");

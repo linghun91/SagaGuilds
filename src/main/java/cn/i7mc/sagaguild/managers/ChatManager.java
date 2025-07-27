@@ -205,9 +205,19 @@ public class ChatManager {
         String format;
 
         if (mode == ChatMode.GUILD) {
-            format = config.getString("chat.format", "&8[&b公会&8] &f{player}: &7{message}");
+            // 尝试从公会特定配置中获取格式，如果不存在则使用默认格式
+            String guildFormat = config.getString("chat.format." + guild.getName() + ".value");
+            if (guildFormat == null || guildFormat.contains("MemorySection")) {
+                guildFormat = config.getString("chat.format");
+            }
+            // 额外检查，确保不是MemorySection对象的toString()
+            if (guildFormat == null || guildFormat.contains("MemorySection")) {
+                guildFormat = "&8[&b公会&8] &f{player}: &7{message}";
+            }
+            format = guildFormat;
             sendGuildMessage(guild.getId(), format, player.getName(), message);
         } else if (mode == ChatMode.ALLIANCE) {
+            // 获取联盟聊天格式
             format = config.getString("chat.ally-format", "&8[&d联盟&8] &f{player}: &7{message}");
             sendAllianceMessage(guild.getId(), format, player.getName(), message);
         }
@@ -260,6 +270,18 @@ public class ChatManager {
             }
         }
 
-        // TODO: 发送给联盟公会成员
+        // 发送给联盟公会成员
+        java.util.List<Integer> alliances = plugin.getAllianceManager().getGuildAlliances(guildId);
+        if (alliances != null && !alliances.isEmpty()) {
+            for (Integer allyGuildId : alliances) {
+                // 获取联盟公会的所有成员
+                for (GuildMember allyMember : plugin.getGuildManager().getGuildMembers(allyGuildId)) {
+                    Player allyPlayer = Bukkit.getPlayer(allyMember.getPlayerUuid());
+                    if (allyPlayer != null && allyPlayer.isOnline()) {
+                        allyPlayer.sendMessage(formattedMessage);
+                    }
+                }
+            }
+        }
     }
 }

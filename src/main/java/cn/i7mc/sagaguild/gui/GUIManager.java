@@ -15,6 +15,8 @@ import cn.i7mc.sagaguild.gui.holders.GuildMemberActionHolder;
 import cn.i7mc.sagaguild.gui.holders.GuildRelationHolder;
 import cn.i7mc.sagaguild.gui.holders.GuildRelationManageHolder;
 import cn.i7mc.sagaguild.gui.holders.JoinRequestHolder;
+import cn.i7mc.sagaguild.gui.holders.GuildLandSettingsHolder;
+import cn.i7mc.sagaguild.gui.holders.GuildChatSettingsHolder;
 import cn.i7mc.sagaguild.gui.listeners.GuildListListener;
 import cn.i7mc.sagaguild.gui.listeners.GuildManageListener;
 import cn.i7mc.sagaguild.gui.listeners.GuildMemberListener;
@@ -23,6 +25,8 @@ import cn.i7mc.sagaguild.gui.listeners.GuildMemberActionListener;
 import cn.i7mc.sagaguild.gui.listeners.GuildRelationListener;
 import cn.i7mc.sagaguild.gui.listeners.GuildRelationManageListener;
 import cn.i7mc.sagaguild.gui.listeners.JoinRequestListener;
+import cn.i7mc.sagaguild.gui.listeners.GuildLandSettingsListener;
+import cn.i7mc.sagaguild.gui.listeners.GuildChatSettingsListener;
 import cn.i7mc.sagaguild.utils.InventoryUtil;
 import cn.i7mc.sagaguild.utils.ItemUtil;
 import net.kyori.adventure.text.Component;
@@ -60,6 +64,8 @@ public class GUIManager {
         plugin.getServer().getPluginManager().registerEvents(new GuildRelationListener(plugin), plugin);
         plugin.getServer().getPluginManager().registerEvents(new GuildRelationManageListener(plugin), plugin);
         plugin.getServer().getPluginManager().registerEvents(new JoinRequestListener(plugin), plugin);
+        plugin.getServer().getPluginManager().registerEvents(new GuildLandSettingsListener(plugin), plugin);
+        plugin.getServer().getPluginManager().registerEvents(new GuildChatSettingsListener(plugin), plugin);
     }
 
     /**
@@ -538,6 +544,21 @@ public class GUIManager {
         chatSettingsItem.setItemMeta(chatSettingsMeta);
         inventory.setItem(30, chatSettingsItem);
 
+        // 解散公会按钮（仅会长可见）
+        ItemStack disbandItem = new ItemStack(Material.TNT);
+        ItemMeta disbandMeta = disbandItem.getItemMeta();
+        ItemUtil.setDisplayName(disbandMeta, Component.text("§c解散公会"));
+        List<Component> disbandLore = new ArrayList<>();
+        disbandLore.add(Component.text("§7解散当前公会"));
+        disbandLore.add(Component.text("§7§l警告: 此操作不可逆！"));
+        disbandLore.add(Component.text("§7将删除公会的所有数据"));
+        disbandLore.add(Component.text("§7包括成员、领地、联盟等"));
+        disbandLore.add(Component.text(""));
+        disbandLore.add(Component.text("§c点击解散"));
+        ItemUtil.setLore(disbandMeta, disbandLore);
+        disbandItem.setItemMeta(disbandMeta);
+        inventory.setItem(40, disbandItem);
+
         // 返回按钮
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
@@ -704,6 +725,83 @@ public class GUIManager {
     }
 
     /**
+     * 创建公会关系管理专用物品
+     * @param guild 公会对象
+     * @return 物品堆
+     */
+    private ItemStack createRelationManageGuildItem(Guild guild) {
+        ItemStack item = new ItemStack(Material.SHIELD);
+        ItemMeta meta = item.getItemMeta();
+
+        // 设置显示名称
+        ItemUtil.setDisplayName(meta, Component.text("§b" + guild.getName() + " §8[§7" + guild.getTag() + "§8]"));
+
+        // 设置描述
+        List<Component> lore = new ArrayList<>();
+
+        // 添加会长
+        String ownerName = Bukkit.getOfflinePlayer(guild.getOwnerUuid()).getName();
+        if (ownerName != null) {
+            lore.add(Component.text("§7会长: §f" + ownerName));
+        }
+
+        // 添加成员数量
+        int memberCount = plugin.getGuildManager().getGuildMemberCount(guild.getId());
+        int maxMembers = guild.getMaxMembers(plugin.getGuildManager());
+        lore.add(Component.text("§7成员: §f" + memberCount + "/" + maxMembers));
+
+        // 添加等级
+        lore.add(Component.text("§7等级: §f" + guild.getLevel()));
+
+        // 添加是否公开
+        lore.add(Component.text("§7公开: §f" + (guild.isPublic() ? "是" : "否")));
+
+        // 添加联盟关系
+        List<Integer> alliances = plugin.getAllianceManager().getGuildAlliances(guild.getId());
+        if (alliances != null && !alliances.isEmpty()) {
+            StringBuilder allyNames = new StringBuilder();
+            int count = 0;
+            for (Integer allyId : alliances) {
+                Guild allyGuild = plugin.getGuildManager().getGuildById(allyId);
+                if (allyGuild != null) {
+                    if (count > 0) {
+                        allyNames.append(", ");
+                    }
+                    allyNames.append(allyGuild.getName());
+                    count++;
+                    if (count >= 3) {
+                        allyNames.append("...");
+                        break;
+                    }
+                }
+            }
+            lore.add(Component.text("§7联盟关系: §f" + allyNames.toString()));
+        } else {
+            lore.add(Component.text("§7联盟关系: §f无"));
+        }
+
+        // 添加战争状态
+        GuildWar war = plugin.getWarManager().getActiveWar(guild.getId());
+        if (war != null) {
+            int opponentId = war.getAttackerId() == guild.getId() ? war.getDefenderId() : war.getAttackerId();
+            Guild opponent = plugin.getGuildManager().getGuildById(opponentId);
+            if (opponent != null) {
+                lore.add(Component.text("§7战争状态: §c与 " + opponent.getName() + " 交战中"));
+            } else {
+                lore.add(Component.text("§7战争状态: §c交战中"));
+            }
+        } else {
+            lore.add(Component.text("§7战争状态: §f无"));
+        }
+
+        // 设置lore（不添加点击提示，因为这是关系管理GUI专用）
+        ItemUtil.setLore(meta, lore);
+        item.setItemMeta(meta);
+
+        return item;
+    }
+
+    /**
      * 打开公会成员操作GUI
      * @param player 玩家
      * @param guild 公会对象
@@ -731,7 +829,149 @@ public class GUIManager {
 
         // 创建物品栏
         String title = plugin.getConfigManager().getMessage("gui.guild-member-action-title", "name", targetMember.getPlayerName());
-        Inventory inventory = InventoryUtil.createInventory(new GuildMemberActionHolder(guild, targetMember), 36, Component.text(title));
+        Inventory inventory = InventoryUtil.createInventory(new GuildMemberActionHolder(guild, targetMember, 1), 36, Component.text(title));
+
+        // 成员信息
+        ItemStack infoItem = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta infoMeta = (SkullMeta) infoItem.getItemMeta();
+        infoMeta.setOwningPlayer(Bukkit.getOfflinePlayer(targetMember.getPlayerUuid()));
+        ItemUtil.setDisplayName(infoMeta, Component.text("§b" + targetMember.getPlayerName()));
+        List<Component> infoLore = new ArrayList<>();
+        infoLore.add(Component.text("§7职位: §f" + targetMember.getRole().getDisplayName()));
+        infoLore.add(Component.text("§7加入时间: §f" + targetMember.getJoinedAt()));
+        ItemUtil.setLore(infoMeta, infoLore);
+        infoItem.setItemMeta(infoMeta);
+        inventory.setItem(4, infoItem);
+
+        // 提升职位
+        if (playerMember.isAdmin() && targetMember.getRole() != GuildMember.Role.OWNER) {
+            ItemStack promoteItem = new ItemStack(Material.EMERALD);
+            ItemMeta promoteMeta = promoteItem.getItemMeta();
+            ItemUtil.setDisplayName(promoteMeta, Component.text("§a提升职位"));
+            List<Component> promoteLore = new ArrayList<>();
+
+            GuildMember.Role newRole;
+            switch (targetMember.getRole()) {
+                case MEMBER:
+                    newRole = GuildMember.Role.ELDER;
+                    break;
+                case ELDER:
+                    newRole = GuildMember.Role.ADMIN;
+                    break;
+                default:
+                    newRole = null;
+                    break;
+            }
+
+            if (newRole != null) {
+                promoteLore.add(Component.text("§7将 §f" + targetMember.getPlayerName() + " §7提升为 §f" + newRole.getDisplayName()));
+                promoteLore.add(Component.text(""));
+                promoteLore.add(Component.text("§e点击提升"));
+                ItemUtil.setLore(promoteMeta, promoteLore);
+                promoteItem.setItemMeta(promoteMeta);
+                inventory.setItem(11, promoteItem);
+            }
+        }
+
+        // 降级职位
+        if (playerMember.isAdmin() && targetMember.getRole() != GuildMember.Role.MEMBER && targetMember.getRole() != GuildMember.Role.OWNER) {
+            ItemStack demoteItem = new ItemStack(Material.REDSTONE);
+            ItemMeta demoteMeta = demoteItem.getItemMeta();
+            ItemUtil.setDisplayName(demoteMeta, Component.text("§c降级职位"));
+            List<Component> demoteLore = new ArrayList<>();
+
+            GuildMember.Role newRole;
+            switch (targetMember.getRole()) {
+                case ADMIN:
+                    newRole = GuildMember.Role.ELDER;
+                    break;
+                case ELDER:
+                    newRole = GuildMember.Role.MEMBER;
+                    break;
+                default:
+                    newRole = null;
+                    break;
+            }
+
+            if (newRole != null) {
+                demoteLore.add(Component.text("§7将 §f" + targetMember.getPlayerName() + " §7降级为 §f" + newRole.getDisplayName()));
+                demoteLore.add(Component.text(""));
+                demoteLore.add(Component.text("§e点击降级"));
+                ItemUtil.setLore(demoteMeta, demoteLore);
+                demoteItem.setItemMeta(demoteMeta);
+                inventory.setItem(13, demoteItem);
+            }
+        }
+
+        // 踢出公会
+        if (playerMember.canKick(targetMember.getRole())) {
+            ItemStack kickItem = new ItemStack(Material.BARRIER);
+            ItemMeta kickMeta = kickItem.getItemMeta();
+            ItemUtil.setDisplayName(kickMeta, Component.text("§c踢出公会"));
+            List<Component> kickLore = new ArrayList<>();
+            kickLore.add(Component.text("§7将 §f" + targetMember.getPlayerName() + " §7踢出公会"));
+            kickLore.add(Component.text(""));
+            kickLore.add(Component.text("§c点击踢出"));
+            ItemUtil.setLore(kickMeta, kickLore);
+            kickItem.setItemMeta(kickMeta);
+            inventory.setItem(15, kickItem);
+        }
+
+        // 转让会长
+        if (playerMember.isOwner()) {
+            ItemStack transferItem = new ItemStack(Material.GOLDEN_HELMET);
+            ItemMeta transferMeta = transferItem.getItemMeta();
+            ItemUtil.setDisplayName(transferMeta, Component.text("§6转让会长"));
+            List<Component> transferLore = new ArrayList<>();
+            transferLore.add(Component.text("§7将会长职位转让给 §f" + targetMember.getPlayerName()));
+            transferLore.add(Component.text(""));
+            transferLore.add(Component.text("§6点击转让"));
+            ItemUtil.setLore(transferMeta, transferLore);
+            transferItem.setItemMeta(transferMeta);
+            inventory.setItem(31, transferItem);
+        }
+
+        // 返回按钮
+        ItemStack backButton = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backButton.getItemMeta();
+        ItemUtil.setDisplayName(backMeta, Component.text(plugin.getConfigManager().getMessage("gui.back")));
+        backButton.setItemMeta(backMeta);
+        inventory.setItem(27, backButton);
+
+        // 打开GUI
+        player.openInventory(inventory);
+    }
+
+    /**
+     * 打开公会成员操作GUI（带页码）
+     * @param player 玩家
+     * @param guild 公会对象
+     * @param targetMember 目标成员
+     * @param page 页码
+     */
+    public void openGuildMemberActionGUI(Player player, Guild guild, GuildMember targetMember, int page) {
+        // 检查玩家是否有权限管理公会成员
+        GuildMember playerMember = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
+        if (playerMember == null || !playerMember.isElder()) {
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission"));
+            return;
+        }
+
+        // 检查是否是自己
+        if (playerMember.getPlayerUuid().equals(targetMember.getPlayerUuid())) {
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.cannot-manage-self"));
+            return;
+        }
+
+        // 检查是否有权限管理该成员
+        if (!canManageMember(playerMember, targetMember)) {
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission-manage-member"));
+            return;
+        }
+
+        // 创建物品栏（带页码信息）
+        String title = plugin.getConfigManager().getMessage("gui.guild-member-action-title", "name", targetMember.getPlayerName());
+        Inventory inventory = InventoryUtil.createInventory(new GuildMemberActionHolder(guild, targetMember, page), 36, Component.text(title));
 
         // 成员信息
         ItemStack infoItem = new ItemStack(Material.PLAYER_HEAD);
@@ -1010,7 +1250,7 @@ public class GUIManager {
         for (AllianceRequest request : allianceRequests) {
             Guild requesterGuild = plugin.getGuildManager().getGuildById(request.getRequesterId());
             if (requesterGuild != null) {
-                ItemStack item = createGuildItem(requesterGuild);
+                ItemStack item = createRelationManageGuildItem(requesterGuild);
                 ItemMeta meta = item.getItemMeta();
                 List<Component> lore = new ArrayList<>();
                 for (String line : ItemUtil.getLore(meta)) {
@@ -1031,7 +1271,7 @@ public class GUIManager {
         for (CeasefireRequest request : ceasefireRequests) {
             Guild requesterGuild = plugin.getGuildManager().getGuildById(request.getRequesterId());
             if (requesterGuild != null) {
-                ItemStack item = createGuildItem(requesterGuild);
+                ItemStack item = createRelationManageGuildItem(requesterGuild);
                 ItemMeta meta = item.getItemMeta();
                 List<Component> lore = new ArrayList<>();
                 for (String line : ItemUtil.getLore(meta)) {
@@ -1070,6 +1310,21 @@ public class GUIManager {
 
         for (int i = startIndex; i < endIndex; i++) {
             inventory.setItem(i - startIndex, requestItems.get(i));
+        }
+
+        // 如果没有任何请求，显示提示信息
+        if (totalRequests == 0) {
+            ItemStack infoItem = new ItemStack(Material.PAPER);
+            ItemMeta infoMeta = infoItem.getItemMeta();
+            ItemUtil.setDisplayName(infoMeta, Component.text("§e暂无待处理的关系请求"));
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.text("§7当前没有任何联盟请求或停战请求"));
+            lore.add(Component.text(""));
+            lore.add(Component.text("§a你可以使用 §f/g ally add <公会名> §a主动结盟"));
+            lore.add(Component.text("§a或使用 §f/g war declare <公会名> §a宣战"));
+            ItemUtil.setLore(infoMeta, lore);
+            infoItem.setItemMeta(infoMeta);
+            inventory.setItem(22, infoItem); // 放在中央位置
         }
 
         // 添加导航按钮
@@ -1137,5 +1392,229 @@ public class GUIManager {
         item.setItemMeta(meta);
 
         return item;
+    }
+
+    /**
+     * 打开公会领地设置GUI
+     * @param player 玩家
+     * @param guild 公会对象
+     */
+    public void openGuildLandSettingsGUI(Player player, Guild guild) {
+        // 检查玩家权限
+        GuildMember member = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
+        if (member == null || !member.isElder()) {
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission"));
+            return;
+        }
+
+        // 创建GUI
+        String title = "领地设置 - " + guild.getName();
+        Inventory inventory = InventoryUtil.createInventory(new GuildLandSettingsHolder(guild), 54, Component.text(title));
+
+        // 获取当前配置
+        boolean protectionEnabled = plugin.getConfig().getBoolean("land.protection." + guild.getName() + ".enabled", true);
+        boolean pvpEnabled = plugin.getConfig().getBoolean("land.pvp." + guild.getName() + ".enabled", false);
+        boolean guestAccess = plugin.getConfig().getBoolean("land.guest." + guild.getName() + ".access", true);
+        boolean membersOnlyBuild = plugin.getConfig().getBoolean("land.build." + guild.getName() + ".members-only", true);
+
+        // 领地保护设置 (位置10)
+        ItemStack protectionItem = new ItemStack(protectionEnabled ? Material.SHIELD : Material.BARRIER);
+        ItemMeta protectionMeta = protectionItem.getItemMeta();
+        ItemUtil.setDisplayName(protectionMeta, Component.text("§6领地保护"));
+        List<Component> protectionLore = new ArrayList<>();
+        protectionLore.add(Component.text("§7当前状态: " + (protectionEnabled ? "§a启用" : "§c禁用")));
+        protectionLore.add(Component.text("§7保护领地免受破坏"));
+        protectionLore.add(Component.text(""));
+        protectionLore.add(Component.text("§e点击切换"));
+        ItemUtil.setLore(protectionMeta, protectionLore);
+        protectionItem.setItemMeta(protectionMeta);
+        inventory.setItem(10, protectionItem);
+
+        // PVP设置 (位置12)
+        ItemStack pvpItem = new ItemStack(pvpEnabled ? Material.DIAMOND_SWORD : Material.WOODEN_SWORD);
+        ItemMeta pvpMeta = pvpItem.getItemMeta();
+        ItemUtil.setDisplayName(pvpMeta, Component.text("§cPVP设置"));
+        List<Component> pvpLore = new ArrayList<>();
+        pvpLore.add(Component.text("§7当前状态: " + (pvpEnabled ? "§a启用" : "§c禁用")));
+        pvpLore.add(Component.text("§7领地内是否允许PVP"));
+        pvpLore.add(Component.text(""));
+        pvpLore.add(Component.text("§e点击切换"));
+        ItemUtil.setLore(pvpMeta, pvpLore);
+        pvpItem.setItemMeta(pvpMeta);
+        inventory.setItem(12, pvpItem);
+
+        // 访客权限设置 (位置14)
+        ItemStack guestItem = new ItemStack(guestAccess ? Material.OAK_DOOR : Material.IRON_DOOR);
+        ItemMeta guestMeta = guestItem.getItemMeta();
+        ItemUtil.setDisplayName(guestMeta, Component.text("§b访客权限"));
+        List<Component> guestLore = new ArrayList<>();
+        guestLore.add(Component.text("§7当前状态: " + (guestAccess ? "§a允许" : "§c禁止")));
+        guestLore.add(Component.text("§7非成员是否可进入领地"));
+        guestLore.add(Component.text(""));
+        guestLore.add(Component.text("§e点击切换"));
+        ItemUtil.setLore(guestMeta, guestLore);
+        guestItem.setItemMeta(guestMeta);
+        inventory.setItem(14, guestItem);
+
+        // 建筑权限设置 (位置16)
+        ItemStack buildItem = new ItemStack(membersOnlyBuild ? Material.GOLDEN_PICKAXE : Material.WOODEN_PICKAXE);
+        ItemMeta buildMeta = buildItem.getItemMeta();
+        ItemUtil.setDisplayName(buildMeta, Component.text("§e建筑权限"));
+        List<Component> buildLore = new ArrayList<>();
+        buildLore.add(Component.text("§7当前状态: " + (membersOnlyBuild ? "§a仅成员" : "§c所有人")));
+        buildLore.add(Component.text("§7领地内的建筑权限"));
+        buildLore.add(Component.text(""));
+        buildLore.add(Component.text("§e点击切换"));
+        ItemUtil.setLore(buildMeta, buildLore);
+        buildItem.setItemMeta(buildMeta);
+        inventory.setItem(16, buildItem);
+
+        // 重置设置按钮 (位置40)
+        ItemStack resetItem = new ItemStack(Material.TNT);
+        ItemMeta resetMeta = resetItem.getItemMeta();
+        ItemUtil.setDisplayName(resetMeta, Component.text("§c重置设置"));
+        List<Component> resetLore = new ArrayList<>();
+        resetLore.add(Component.text("§7重置所有领地设置为默认值"));
+        resetLore.add(Component.text("§7§l警告: 此操作不可逆！"));
+        resetLore.add(Component.text(""));
+        resetLore.add(Component.text("§c点击重置"));
+        ItemUtil.setLore(resetMeta, resetLore);
+        resetItem.setItemMeta(resetMeta);
+        inventory.setItem(40, resetItem);
+
+        // 返回按钮 (位置49)
+        ItemStack backButton = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backButton.getItemMeta();
+        ItemUtil.setDisplayName(backMeta, Component.text(plugin.getConfigManager().getMessage("gui.back")));
+        backButton.setItemMeta(backMeta);
+        inventory.setItem(49, backButton);
+
+        player.openInventory(inventory);
+    }
+
+    /**
+     * 打开公会聊天设置GUI
+     * @param player 玩家
+     * @param guild 公会对象
+     */
+    public void openGuildChatSettingsGUI(Player player, Guild guild) {
+        // 检查玩家权限
+        GuildMember member = plugin.getGuildManager().getMemberByUuid(player.getUniqueId());
+        if (member == null || !member.isElder()) {
+            player.sendMessage(plugin.getConfigManager().getMessage("guild.no-permission"));
+            return;
+        }
+
+        // 创建GUI
+        String title = "聊天设置 - " + guild.getName();
+        Inventory inventory = InventoryUtil.createInventory(new GuildChatSettingsHolder(guild), 54, Component.text(title));
+
+        // 获取当前配置
+        boolean guildChatEnabled = plugin.getConfig().getBoolean("chat.guild." + guild.getName() + ".enabled", true);
+        boolean allyChatEnabled = plugin.getConfig().getBoolean("chat.ally." + guild.getName() + ".enabled", true);
+        boolean chatFilterEnabled = plugin.getConfig().getBoolean("chat.filter." + guild.getName() + ".enabled", false);
+        boolean autoGuildChatEnabled = plugin.getConfig().getBoolean("chat.auto." + guild.getName() + ".enabled", false);
+
+        // 公会聊天开关 (位置10)
+        ItemStack guildChatItem = new ItemStack(guildChatEnabled ? Material.GREEN_DYE : Material.RED_DYE);
+        ItemMeta guildChatMeta = guildChatItem.getItemMeta();
+        ItemUtil.setDisplayName(guildChatMeta, Component.text("§a公会聊天"));
+        List<Component> guildChatLore = new ArrayList<>();
+        guildChatLore.add(Component.text("§7当前状态: " + (guildChatEnabled ? "§a启用" : "§c禁用")));
+        guildChatLore.add(Component.text("§7公会内部聊天功能"));
+        guildChatLore.add(Component.text(""));
+        guildChatLore.add(Component.text("§e点击切换"));
+        ItemUtil.setLore(guildChatMeta, guildChatLore);
+        guildChatItem.setItemMeta(guildChatMeta);
+        inventory.setItem(10, guildChatItem);
+
+        // 联盟聊天开关 (位置12)
+        ItemStack allyChatItem = new ItemStack(allyChatEnabled ? Material.LIME_DYE : Material.GRAY_DYE);
+        ItemMeta allyChatMeta = allyChatItem.getItemMeta();
+        ItemUtil.setDisplayName(allyChatMeta, Component.text("§d联盟聊天"));
+        List<Component> allyChatLore = new ArrayList<>();
+        allyChatLore.add(Component.text("§7当前状态: " + (allyChatEnabled ? "§a启用" : "§c禁用")));
+        allyChatLore.add(Component.text("§7与联盟公会的聊天功能"));
+        allyChatLore.add(Component.text(""));
+        allyChatLore.add(Component.text("§e点击切换"));
+        ItemUtil.setLore(allyChatMeta, allyChatLore);
+        allyChatItem.setItemMeta(allyChatMeta);
+        inventory.setItem(12, allyChatItem);
+
+        // 聊天过滤开关 (位置14)
+        ItemStack filterItem = new ItemStack(chatFilterEnabled ? Material.HOPPER : Material.BUCKET);
+        ItemMeta filterMeta = filterItem.getItemMeta();
+        ItemUtil.setDisplayName(filterMeta, Component.text("§6聊天过滤"));
+        List<Component> filterLore = new ArrayList<>();
+        filterLore.add(Component.text("§7当前状态: " + (chatFilterEnabled ? "§a启用" : "§c禁用")));
+        filterLore.add(Component.text("§7过滤不当内容"));
+        filterLore.add(Component.text(""));
+        filterLore.add(Component.text("§e点击切换"));
+        ItemUtil.setLore(filterMeta, filterLore);
+        filterItem.setItemMeta(filterMeta);
+        inventory.setItem(14, filterItem);
+
+        // 自动进入公会聊天 (位置16)
+        ItemStack autoItem = new ItemStack(autoGuildChatEnabled ? Material.REPEATER : Material.REDSTONE);
+        ItemMeta autoMeta = autoItem.getItemMeta();
+        ItemUtil.setDisplayName(autoMeta, Component.text("§b自动公会聊天"));
+        List<Component> autoLore = new ArrayList<>();
+        autoLore.add(Component.text("§7当前状态: " + (autoGuildChatEnabled ? "§a启用" : "§c禁用")));
+        autoLore.add(Component.text("§7新成员自动进入公会聊天"));
+        autoLore.add(Component.text(""));
+        autoLore.add(Component.text("§e点击切换"));
+        ItemUtil.setLore(autoMeta, autoLore);
+        autoItem.setItemMeta(autoMeta);
+        inventory.setItem(16, autoItem);
+
+        // 聊天格式设置 (位置28)
+        ItemStack formatItem = new ItemStack(Material.NAME_TAG);
+        ItemMeta formatMeta = formatItem.getItemMeta();
+        ItemUtil.setDisplayName(formatMeta, Component.text("§e聊天格式"));
+        List<Component> formatLore = new ArrayList<>();
+        String currentFormat = plugin.getConfig().getString("chat.format." + guild.getName() + ".value", "&8[&b{guild}&8] &f{player}: &7{message}");
+        formatLore.add(Component.text("§7当前格式:"));
+        formatLore.add(Component.text("§f" + currentFormat));
+        formatLore.add(Component.text(""));
+        formatLore.add(Component.text("§e点击修改"));
+        ItemUtil.setLore(formatMeta, formatLore);
+        formatItem.setItemMeta(formatMeta);
+        inventory.setItem(28, formatItem);
+
+        // 聊天前缀设置 (位置30)
+        ItemStack prefixItem = new ItemStack(Material.OAK_SIGN);
+        ItemMeta prefixMeta = prefixItem.getItemMeta();
+        ItemUtil.setDisplayName(prefixMeta, Component.text("§6聊天前缀"));
+        List<Component> prefixLore = new ArrayList<>();
+        String currentPrefix = plugin.getConfig().getString("chat.prefix." + guild.getName() + ".value", "[" + guild.getName() + "]");
+        prefixLore.add(Component.text("§7当前前缀: §f" + currentPrefix));
+        prefixLore.add(Component.text("§7显示在聊天消息前"));
+        prefixLore.add(Component.text(""));
+        prefixLore.add(Component.text("§e点击修改"));
+        ItemUtil.setLore(prefixMeta, prefixLore);
+        prefixItem.setItemMeta(prefixMeta);
+        inventory.setItem(30, prefixItem);
+
+        // 重置设置按钮 (位置40)
+        ItemStack resetItem = new ItemStack(Material.TNT);
+        ItemMeta resetMeta = resetItem.getItemMeta();
+        ItemUtil.setDisplayName(resetMeta, Component.text("§c重置设置"));
+        List<Component> resetLore = new ArrayList<>();
+        resetLore.add(Component.text("§7重置所有聊天设置为默认值"));
+        resetLore.add(Component.text("§7§l警告: 此操作不可逆！"));
+        resetLore.add(Component.text(""));
+        resetLore.add(Component.text("§c点击重置"));
+        ItemUtil.setLore(resetMeta, resetLore);
+        resetItem.setItemMeta(resetMeta);
+        inventory.setItem(40, resetItem);
+
+        // 返回按钮 (位置49)
+        ItemStack backButton = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backButton.getItemMeta();
+        ItemUtil.setDisplayName(backMeta, Component.text(plugin.getConfigManager().getMessage("gui.back")));
+        backButton.setItemMeta(backMeta);
+        inventory.setItem(49, backButton);
+
+        player.openInventory(inventory);
     }
 }

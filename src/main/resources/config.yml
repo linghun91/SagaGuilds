@@ -30,6 +30,11 @@ land:
   claim-cost: 500
   # 领地保护范围（方块）
   protection-radius: 16
+  # 禁止声明领地的世界列表
+  disabled-worlds:
+    - "world_spawn"
+    - "lobby"
+    - "spawn"
 
 # 公会等级设置
 levels:
@@ -78,6 +83,19 @@ chat:
   format: "&8[&b公会&8] &f{player}: &7{message}"
   # 联盟聊天格式
   ally-format: "&8[&d联盟&8] &f{player}: &7{message}"
+
+# 公会传送点设置
+warp:
+  # 传送延迟（秒）
+  teleport-delay: 3
+  # 移动时是否取消传送
+  cancel-on-move: true
+  # 战斗中是否禁止传送
+  no-teleport-in-combat: true
+  # 禁止设置传送点的世界
+  disabled-worlds:
+    - world_nether
+    - world_the_end
 
 # 调试模式
 debug: false
